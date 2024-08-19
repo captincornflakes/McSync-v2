@@ -24,16 +24,15 @@ The **McSync Plugin** is a versatile tool designed to synchronize subscriber cou
 
 1. **Clone the Repository:**
 
-   ```sh
-   git clone https://github.com/captincornflakes/McSync-v2.git
-   cd McSync-v2
-
+    ```sh
+    git clone https://github.com/captincornflakes/McSync-v2.git
+    cd McSync-v2
+    ```
 2. **Install Python Dependencies:**
 
-sh
-Copy code
-pip install -r requirements.txt
-Configure Discord Bot:
+    ```sh
+    pip install -r requirements.txt
+    ```
 
 3. **Add the Plugin to Minecraft:**
 
