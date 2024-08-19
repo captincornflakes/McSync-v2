@@ -25,8 +25,9 @@ The **McSync Plugin** is a versatile tool designed to synchronize subscriber cou
 1. **Clone the Repository:**
 
    ```sh
-   git clone https://github.com/yourusername/discord-minecraft-subscriber-sync.git
-   cd discord-minecraft-subscriber-sync
+   git clone https://github.com/captincornflakes/McSync-v2.git
+   cd McSync-v2
+
 2.**Install Python Dependencies:**
 
 sh
@@ -36,30 +37,25 @@ Configure Discord Bot:
 
 3. **Add the Plugin to Minecraft:**
 
-Place the compiled .jar file from minecraft-plugin/target/ into the plugins folder of your Minecraft server.
-Start the Discord Bot:
-
-sh
-Copy code
-python bot.py
-Start Your Minecraft Server:
+Download the Jar file to your plugins folder
 
 Ensure the Minecraft server is running with the plugin installed and properly configured.
 Usage
+
 4. **Sync Commands:**
 
-/syncsubscribers: Manually trigger a synchronization between Discord and Minecraft.
-/setrole <role>: Set a role for subscribers based on their count.
+/settoken: Manually trigger a synchronization between Discord and Minecraft.
+
 Automatic Syncing:
+Subscribers are automatically synced when joining your MineCraft server.
 
-Subscribers are automatically synced at intervals defined in the config.json.
-Configuration
+**Configuration**
 A. Discord Bot:
-
 Manage roles and permissions within your Discord server.
-B. Minecraft Plugin:
 
-Adjust settings in the plugin configuration file to customize synchronization and role assignment.
+B. Minecraft Plugin:
+Adjust settings in the plugin configuration file to customize synchronization.
+
 **Contributing**
 Contributions are welcome! Please submit issues and pull requests via GitHub. For major changes, please open an issue to discuss what you would like to change.
 
@@ -68,6 +64,7 @@ Create a new branch (git checkout -b feature-branch).
 Commit your changes (git commit -am 'Add new feature').
 Push to the branch (git push origin feature-branch).
 Create a new Pull Request.
+
 **License**
 This project is licensed under the MIT License. See the LICENSE file for details.
 
