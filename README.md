@@ -54,7 +54,7 @@ Discord / commands:
     Use is (/link <Minecraft Name>)
 ```
 ```
-Disocrd Commands:
+MineCraft Commands:
 /settoken: Manually trigger a synchronization between Discord and Minecraft.
 
 Syncing:
@@ -62,10 +62,10 @@ Subscribers are automatically synced when joining your MineCraft server.
 ```
 5. **Configuration**
 
-A. Discord Bot:
+- Discord Bot:
 Manage roles and permissions within your Discord server.
 
-B. Minecraft Plugin:
+- Minecraft Plugin:
 Adjust settings in the plugin configuration file to customize synchronization.
 
 ##  **Contributing**
