@@ -76,7 +76,8 @@ Schema is as follows for version formats.
 ##  **Contributing**
 Contributions are welcome! Please submit issues and pull requests via GitHub. For major changes, please open an issue to discuss what you would like to change.
 
-- ChronicSquid
+- ChronicSquid - Stylist and customer support
+- CaptinCornFlakes - Main Developer / Tech Support
 
 ##  **Fork the repository.**
 
