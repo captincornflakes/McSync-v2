@@ -51,8 +51,8 @@ Discord / commands:
     Use is (/delete)
 /update - (Admin Only) Updates stored roles in datastores. 
     Use is (/update)
-/link - (all users) link the players minecraft username to the account. 
-    Use is (/link <Minecraft Name>)
+/mcsync - (all users) link the players minecraft username to the account. 
+    Use is (/mcsync <Minecraft Name>)
 ```
 
 MineCraft Commands:

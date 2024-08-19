@@ -69,8 +69,8 @@ class MinecraftNameCog(commands.Cog):
 
         return minecraft_token, token_filename
 
-    @discord.app_commands.command(name="minecraft", description="Register a Minecraft name to the current token.")
-    async def minecraft(self, interaction: discord.Interaction, minecraftname: str):
+    @discord.app_commands.command(name="mcsync", description="Register a Minecraft name to the current token.")
+    async def mcsync(self, interaction: discord.Interaction, minecraftname: str):
         """Command to register a Minecraft name to the current token and include user info and roles."""
         user = interaction.user
         result = await self.register_minecraftname(interaction.guild, minecraftname, user)
