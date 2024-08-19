@@ -7,6 +7,7 @@ class Utilities(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="clear", description="Clears a number of messages from the channel, including bot messages.")
+    @app_commands.default_permissions(administrator=True)
     async def clear(self, interaction: discord.Interaction, amount: int = 100):
         """
         Clears a number of messages from the channel, including bot messages.

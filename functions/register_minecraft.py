@@ -70,7 +70,6 @@ class MinecraftNameCog(commands.Cog):
         return minecraft_token, token_filename
 
     @discord.app_commands.command(name="minecraft", description="Register a Minecraft name to the current token.")
-    @discord.app_commands.default_permissions(administrator=True)
     async def minecraft(self, interaction: discord.Interaction, minecraftname: str):
         """Command to register a Minecraft name to the current token and include user info and roles."""
         user = interaction.user
