@@ -36,6 +36,4 @@ class Utilities(commands.Cog):
 # Setup function to add the cog to the bot
 async def setup(bot):
     await bot.add_cog(Utilities(bot))
-    # Sync commands with Discord's API
-    await bot.tree.sync()
 

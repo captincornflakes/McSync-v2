@@ -68,4 +68,3 @@ class ServerSetupCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ServerSetupCog(bot))
-    await bot.tree.sync()

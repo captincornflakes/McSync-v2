@@ -27,6 +27,7 @@ def load_application_id():
     
 # Define the intents you want your bot to have
 intents = discord.Intents.default()
+intents.message_content = True  # Enable message content intent
 
 # Prefix and bot initialization
 PREFIX = "!"
@@ -47,7 +48,6 @@ async def load_extensions_from_folder(folder):
 # Event: When the bot is ready and connected
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     print('Bot is ready')
     activity = discord.Activity(type=discord.ActivityType.listening, name=f"{PREFIX}help")
     await bot.change_presence(status=discord.Status.idle, activity=activity)
