@@ -76,6 +76,8 @@ Schema is as follows for version formats.
 ##  **Contributing**
 Contributions are welcome! Please submit issues and pull requests via GitHub. For major changes, please open an issue to discuss what you would like to change.
 
+- ChronicSquid
+
 ##  **Fork the repository.**
 
 Create a new branch (git checkout -b feature-branch).
@@ -90,5 +92,5 @@ This project is licensed under the MIT License. See the LICENSE file for details
 ##  **Contact**
 For any questions or support, please contact:
 
-Discord: https://discord.gg/VZgJQuNhep
-GitHub Issues: GitHub Issues
+- Discord: https://discord.gg/VZgJQuNhep
+- GitHub Issues: GitHub Issues
