@@ -2,8 +2,9 @@ import discord
 from discord.ext import commands
 import json
 import os
+import aiohttp
 
-class MinecraftName(commands.Cog):
+class MinecraftNameCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -17,11 +18,20 @@ class MinecraftName(commands.Cog):
         }
         return user_info
 
+    async def is_valid_minecraftname(self, minecraftname):
+        """Check if the Minecraft username is valid using Mojang's API."""
+        url = f"https://api.mojang.com/users/profiles/minecraft/{minecraftname}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                return response.status == 200
+
     async def register_minecraftname(self, guild, minecraftname, user):
         """Register the Minecraft name in the server's JSON file and include user info and roles."""
+        if not await self.is_valid_minecraftname(minecraftname):
+            return None  # Invalid Minecraft name
+
         server_id = guild.id
         server_filename = f'datastores/{server_id}.json'
-        new_token = self.generate_random_token()
 
         # Ensure the datastores directory exists
         os.makedirs('datastores', exist_ok=True)
@@ -33,7 +43,7 @@ class MinecraftName(commands.Cog):
             data = {}
 
         # Get the current minecraft_token
-        minecraft_token = data.get('minecraft_token', new_token)
+        minecraft_token = data.get('minecraft_token', self.generate_random_token())
         data['minecraft_token'] = minecraft_token
 
         # Write the updated data to the server JSON file
@@ -67,11 +77,13 @@ class MinecraftName(commands.Cog):
         result = await self.register_minecraftname(interaction.guild, minecraftname, user)
         if result:
             await interaction.response.send_message(
-                f"Successfully registered. Please log in to the Minecraft server.",ephemeral=True
+                f"Successfully registered {minecraftname}. Please log in to the Minecraft server.",
+                ephemeral=True
             )
         else:
             await interaction.response.send_message(
-                "Failed to register the Minecraft name.",ephemeral=True
+                "The Minecraft name is invalid or failed to register. Please ensure the name is correct and try again.",
+                ephemeral=True
             )
 
     def generate_random_token(self, length=32):
@@ -83,4 +95,4 @@ class MinecraftName(commands.Cog):
 
 # Setup function to add the cog to the bot
 async def setup(bot):
-    await bot.add_cog(MinecraftName(bot))
+    await bot.add_cog(MinecraftNameCog(bot))
