@@ -161,3 +161,4 @@ cython_debug/
 datastores/config.json
 datastores/1234351991313006622.json
 Info.txt
+*.bat
