@@ -1,4 +1,4 @@
-# McSync
+# McSync v2.0.0 Beta
 
 ## Overview
 
