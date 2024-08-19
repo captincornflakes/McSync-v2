@@ -35,20 +35,29 @@ The **McSync Plugin** is a versatile tool designed to synchronize subscriber cou
     ```
 
 3. **Add the Plugin to Minecraft:**
-
+```
 Download the Jar file to your plugins folder
 
 Ensure the Minecraft server is running with the plugin installed and properly configured.
 Usage
-
+```
 4. **Sync Commands:**
-
+```
+Discord / commands:
+/setup - (Admin Only) Setsup the server with datastores and channels. Use is (/setup)
+/delete - (Admin Only) Deletes the servers datastores. useful for testing. Use is (/delete)
+/update - (Admin Only) Updates stored roles in datastores. Use is (/update)
+/link - (all users) link the players minecraft username to the account. Use is (/link <Minecraft Name>)
+```
+```
+Disocrd Commands:
 /settoken: Manually trigger a synchronization between Discord and Minecraft.
 
-Automatic Syncing:
+Syncing:
 Subscribers are automatically synced when joining your MineCraft server.
-
+```
 5. **Configuration**
+
 A. Discord Bot:
 Manage roles and permissions within your Discord server.
 
@@ -59,10 +68,12 @@ Adjust settings in the plugin configuration file to customize synchronization.
 Contributions are welcome! Please submit issues and pull requests via GitHub. For major changes, please open an issue to discuss what you would like to change.
 
 ##  **Fork the repository.**
+```
 Create a new branch (git checkout -b feature-branch).
 Commit your changes (git commit -am 'Add new feature').
 Push to the branch (git push origin feature-branch).
 Create a new Pull Request.
+```
 
 ##  **License**
 This project is licensed under the MIT License. See the LICENSE file for details.
