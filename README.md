@@ -44,10 +44,14 @@ Usage
 4. **Sync Commands:**
 ```
 Discord / commands:
-/setup - (Admin Only) Setsup the server with datastores and channels. Use is (/setup)
-/delete - (Admin Only) Deletes the servers datastores. useful for testing. Use is (/delete)
-/update - (Admin Only) Updates stored roles in datastores. Use is (/update)
-/link - (all users) link the players minecraft username to the account. Use is (/link <Minecraft Name>)
+/setup - (Admin Only) Setsup the server with datastores and channels. 
+    Use is (/setup)
+/delete - (Admin Only) Deletes the servers datastores. useful for testing. 
+    Use is (/delete)
+/update - (Admin Only) Updates stored roles in datastores. 
+    Use is (/update)
+/link - (all users) link the players minecraft username to the account. 
+    Use is (/link <Minecraft Name>)
 ```
 ```
 Disocrd Commands:
