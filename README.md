@@ -28,7 +28,7 @@ The **McSync Plugin** is a versatile tool designed to synchronize subscriber cou
    git clone https://github.com/captincornflakes/McSync-v2.git
    cd McSync-v2
 
-2.**Install Python Dependencies:**
+2. **Install Python Dependencies:**
 
 sh
 Copy code
@@ -49,26 +49,26 @@ Usage
 Automatic Syncing:
 Subscribers are automatically synced when joining your MineCraft server.
 
-**Configuration**
+5. **Configuration**
 A. Discord Bot:
 Manage roles and permissions within your Discord server.
 
 B. Minecraft Plugin:
 Adjust settings in the plugin configuration file to customize synchronization.
 
-**Contributing**
+6. **Contributing**
 Contributions are welcome! Please submit issues and pull requests via GitHub. For major changes, please open an issue to discuss what you would like to change.
 
-**Fork the repository.**
+7. **Fork the repository.**
 Create a new branch (git checkout -b feature-branch).
 Commit your changes (git commit -am 'Add new feature').
 Push to the branch (git push origin feature-branch).
 Create a new Pull Request.
 
-**License**
+8. **License**
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-**Contact**
+9. **Contact**
 For any questions or support, please contact:
 
 Email: your-email@example.com
