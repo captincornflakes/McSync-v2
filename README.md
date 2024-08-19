@@ -69,6 +69,10 @@ Manage roles and permissions within your Discord server.
 - Minecraft Plugin:
 Adjust settings in the plugin configuration file to customize synchronization.
 
+##  **Versioning**
+Schema is as follows for version formats.
+Main.Major.Minor
+
 ##  **Contributing**
 Contributions are welcome! Please submit issues and pull requests via GitHub. For major changes, please open an issue to discuss what you would like to change.
 
