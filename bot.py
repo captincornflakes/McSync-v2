@@ -5,33 +5,41 @@ import json
 import tracemalloc
 import logging
 import asyncio
+import mysql.connector
+
+#pip install mysql-connector-python
 
 # Enable logging
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 logging.basicConfig(level=logging.INFO, handlers=[handler])
+   
+# Load database configuration from config.json
+with open('datastores/config.json') as config_file:
+    config = json.load(config_file)
 
-# Start memory tracking
-tracemalloc.start()
-
-# Load the bot token from a JSON file in the 'datastores' folder
-def load_token():
-    with open('datastores/config.json') as f:
-        data = json.load(f)
-        return data.get('token')
-
-# Load the bot token from a JSON file in the 'datastores' folder
-def load_application_id():
-    with open('datastores/config.json') as f:
-        data = json.load(f)
-        return data.get('application_id')
-    
 # Define the intents you want your bot to have
 intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent
 
 # Prefix and bot initialization
 PREFIX = "!"
-bot = commands.Bot(command_prefix=PREFIX, intents=intents, application_id=load_application_id())
+# Load application_id as an integer
+application_id = int(config['application_id'])
+bot = commands.Bot(command_prefix=PREFIX, intents=intents, application_id=application_id, help_command=None)
+
+# Set up the database connection
+db_config = config['database']
+db_connection = mysql.connector.connect(
+    host=db_config['host'],
+    user=db_config['user'],
+    password=db_config['password'],
+    database=db_config['database']
+)
+# Store the connection in the bot instance
+bot.db_connection = db_connection
+
+# Start memory tracking
+tracemalloc.start()
 
 # Function to load all Python files from a directory as extensions
 async def load_extensions_from_folder(folder):
@@ -45,10 +53,8 @@ async def load_extensions_from_folder(folder):
             except Exception as e:
                 print(f'Failed to load extension {module_path}. Reason: {e}')
 
-# Event: When the bot is ready and connected
 @bot.event
 async def on_ready():
-    print('Bot is ready')
     activity = discord.Activity(type=discord.ActivityType.listening, name=f"{PREFIX}help")
     await bot.change_presence(status=discord.Status.idle, activity=activity)
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
@@ -68,5 +74,5 @@ bot.setup_hook = setup_hook
 
 # Run the bot with your token
 if __name__ == '__main__':
-    token = load_token()
+    token = config['token']
     bot.run(token, log_handler=handler, log_level=logging.INFO)

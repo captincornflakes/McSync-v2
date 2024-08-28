@@ -166,3 +166,5 @@ Info.txt
 *.bat
 datastores/nEiE7wZYzpm8blwZRwa9YEWdRfpptfFi.json
 datastores/config-prod.json
+Website/
+plugin/

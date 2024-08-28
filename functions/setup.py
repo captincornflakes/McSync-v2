@@ -1,85 +1,131 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.ui import View, Select
 import os
 import json
+import secrets
+import string
 
 class ServerSetupCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    async def load_data(self, filename):
-        try:
-            with open(f'datastores/{filename}', 'r') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            return None
-        
-    async def ensure_datastores_directory(self):
-        if not os.path.exists('datastores'):
-            os.makedirs('datastores')
-
-    def generate_server_json(self, guild):
-        """Generate a JSON file with the server ID as the name."""
-        server_data = {
-            "server_name": guild.name,
-            "server_id": guild.id,
-            "roles": [],
-            "minecraft_token": ""
+        self.conn = bot.db_connection  # Access the connection from the bot instance
+        self.cursor = self.conn.cursor()
+        self.roles = {
+            "subscriber": None,
+            "tier1": None,
+            "tier2": None,
+            "tier3": None,
+            "override": None
         }
-        
-        for role in guild.roles:
-            server_data["roles"].append({
-                "name": role.name,
-                "id": role.id,
-                "permissions": role.permissions.value
-            })
-        
-        json_path = os.path.join('datastores', f'{guild.id}.json')
-        
-        with open(json_path, 'w') as f:
-            json.dump(server_data, f, indent=4)
 
-    @app_commands.command(name="setup", description="Sets up the server by generating a JSON file with roles and channels.")
-    @app_commands.default_permissions(administrator=True)
-    async def setup(self, interaction: discord.Interaction):
-        """Sets up the server by generating a JSON file with the server's roles and channels."""
-        await self.ensure_datastores_directory()
-        self.generate_server_json(interaction.guild)
-        await interaction.response.send_message(f"Server setup complete! JSON file created for `{interaction.guild.name}`.", ephemeral=True)
-        category_name = 'McSync Bot'
-        guild = interaction.guild
+    def generate_random_token(self, length=32):
+        """Generate a random string of letters and digits."""
+        characters = string.ascii_letters + string.digits
+        return ''.join(secrets.choice(characters) for i in range(length))
+   
+    @commands.command()
+    async def add_server(self, guild):  
+        try:
+            server_id = guild.id
+            server_name = guild.name
+            icon = guild.icon_url if guild.icon else ""
+            new_minecraft_token = self.generate_random_token()
+            integrated = False
+            owner = guild.owner_id
+            users = len(guild.members)
+            plus = False
+            self.cursor.execute("SELECT minecraft_token FROM servers WHERE server_id = %s", (server_id,))
+            result = self.cursor.fetchone()
+            existing_token = result[0] if result else None
+            if existing_token:
+                update_sql = "UPDATE servers SET server_name = %s, minecraft_token = %s, integrated = %s, owner = %s, users = %s, icon = %s, plus = %s WHERE server_id = %s"
+                server_data = (server_name, new_minecraft_token, integrated, owner, users, icon, plus, server_id)
+                self.cursor.execute(update_sql, server_data)
+            else:
+                insert_sql = "INSERT INTO servers (server_id, server_name, minecraft_token, integrated, owner, users, icon, plus) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                server_data = (server_id, server_name, new_minecraft_token, integrated, owner, users, icon, plus)
+                self.cursor.execute(insert_sql, server_data)
+            if existing_token:
+                update_users_sql = "UPDATE users SET token = %s WHERE token = %s"
+                self.cursor.execute(update_users_sql, (new_minecraft_token, existing_token))
+            self.conn.commit()
+            print("Server data successfully added to the database.")
+            return new_minecraft_token
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            self.conn.rollback()
+
+    @commands.command()
+    async def add_channels_roles(self, guild):  
+        try:
+            server_id = guild.id
+            subscriber_role_id = ""
+            overide_role_id = ""
+            server_roles = []
+            for role in guild.roles:
+                server_roles.append({
+                    "name": role.name,
+                    "id": role.id,
+                    "permissions": role.permissions.value,
+                    "color": role.color.value,  
+                    "managed": role.managed
+                })
+            server_roles_json = json.dumps(server_roles)  
+
+            server_channels = []
+            for channel in guild.channels:
+                server_channels.append({
+                    "channel_name": channel.name,
+                    "channel_id": channel.id
+                })
+            server_channels_json = json.dumps(server_channels)
+            category = discord.utils.get(guild.categories, name='McSync')
+            notifications_channel = discord.utils.get(category.channels, name='notifications')
+            notifications_channel_id = notifications_channel.id
+            registrations_channel = discord.utils.get(category.channels, name='registrations')
+            registrations_channel_id = registrations_channel.id
+            self.cursor.execute("SELECT server_id FROM channels_roles WHERE server_id = %s", (server_id,))
+            result = self.cursor.fetchone()
+            existing = result[0] if result else None
+            if existing:
+                update_sql = "UPDATE channels_roles SET server_id = %s, subscriber_role = %s, overide_role = %s, notifications = %s, registrations = %s, server_roles = %s, server_channels = %s WHERE server_id = %s"
+                server_data = (server_id, subscriber_role_id, overide_role_id, notifications_channel_id, registrations_channel_id, server_roles_json, server_channels_json, server_id)
+                self.cursor.execute(update_sql, server_data)
+            else:
+                insert_sql = "INSERT INTO channels_roles (server_id, subscriber_role, overide_role, notifications, registrations, server_roles, server_channels) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                server_data = (server_id, subscriber_role_id, overide_role_id, notifications_channel_id, registrations_channel_id, server_roles_json, server_channels_json)
+                self.cursor.execute(insert_sql, server_data)
+            self.conn.commit()
+            print("Saved server roles.")
+            return "Saved server roles."
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            self.conn.rollback()
+ 
+    @commands.command()
+    async def add_channels(self, guild):  
+        category_name = 'McSync'
         category = discord.utils.get(guild.categories, name=category_name)
         if not category:
             category = await guild.create_category(category_name)
             overwrite = discord.PermissionOverwrite()
             overwrite.read_messages = False
-
             for role in guild.roles:
                 if role.permissions.administrator:
                     await category.set_permissions(role, read_messages=True)
             await guild.create_text_channel('notifications', category=category)
-            await guild.create_text_channel('sync-log', category=category)
-   
+            await guild.create_text_channel('registrations', category=category)
 
-
-
-    @app_commands.command(name="delete", description="Deletes the JSON file for the server.")
+    @app_commands.command(name="setup", description="Sets up the server in the database and generate channels.")
     @app_commands.default_permissions(administrator=True)
-    async def delete(self, interaction: discord.Interaction):
-        server_id = interaction.guild.id
-        filename = f'datastores/{server_id}.json'
-        if os.path.exists(filename):
-            os.remove(filename)
-            await interaction.send(f"The JSON file for server ID {server_id} has been deleted.", ephemeral=True)
-        else:
-            await interaction.send(f"No JSON file found for server ID {server_id}.", ephemeral=True)
-
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        guilds = [guild.id for guild in self.bot.guilds]
-        await self.bot.tree.sync(guild=guilds[0])
+    async def setup(self, interaction: discord.Interaction):
+        print(f"Setup Called - {interaction.guild.name}.")
+        token = await self.add_server(interaction.guild)
+        await self.add_channels(interaction.guild)
+        await self.add_channels_roles(interaction.guild)
+        await interaction.response.send_message(f"Server setup complete. Token is {token}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(ServerSetupCog(bot))
