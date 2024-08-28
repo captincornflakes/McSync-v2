@@ -1,2 +1,3 @@
 discord.py==2.3.2
 plask==0.1.0
+mysql-connector-python
