@@ -1,4 +1,10 @@
 {
-    "token": "Token Here, Rename to config.json after",
-    "application_id": application id here
+    "token": "",
+    "application_id": ,
+    "database": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "database": ""
+    }
 }
