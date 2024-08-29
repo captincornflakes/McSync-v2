@@ -20,6 +20,9 @@ with open('datastores/config.json') as config_file:
 # Define the intents you want your bot to have
 intents = discord.Intents.default()
 intents.message_content = True  # Enable message content intent
+intents.members = True  # Required to receive member update events
+intents.guilds = True   # Required to receive guild events
+
 
 # Prefix and bot initialization
 PREFIX = "!"
