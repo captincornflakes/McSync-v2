@@ -58,8 +58,8 @@ async def load_extensions_from_folder(folder):
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.listening, name=f"McSync.live")
-    await bot.change_presence(status=discord.Status.idle, activity=activity)
+    activity = discord.Activity(type=discord.ActivityType.watching, name=f"MCSync.live")
+    await bot.change_presence(status=discord.Status.online, activity=activity)
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
 
 # Event: Sync commands when bot joins a new guild
