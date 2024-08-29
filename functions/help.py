@@ -1,11 +1,13 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 
 class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="helpme")
+    @app_commands.command(name="help", description="help function.")
+    @app_commands.default_permissions(administrator=True)
     async def help_command(self, ctx):
         # Create an embed for the help message
         embed = discord.Embed(

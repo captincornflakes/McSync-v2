@@ -13,11 +13,11 @@ class ServerSetupCog(commands.Cog):
         self.conn = bot.db_connection  # Access the connection from the bot instance
         self.cursor = self.conn.cursor()
         self.roles = {
-            "subscriber": None,
-            "tier1": None,
-            "tier2": None,
-            "tier3": None,
-            "override": None
+            "subscriber": "Twitch Subscriber",
+            "tier_1": "Twitch Subscriber: Tier 1",
+            "tier_2": "Twitch Subscriber: Tier 2",
+            "tier_3": "Twitch Subscriber: Tier 3",
+            "overide_role": "McSync Overide"
         }
 
     def generate_random_token(self, length=32):
@@ -61,8 +61,11 @@ class ServerSetupCog(commands.Cog):
     async def add_channels_roles(self, guild):  
         try:
             server_id = guild.id
-            subscriber_role_id = ""
-            overide_role_id = ""
+            subscriber_role = self.roles['subscriber']
+            tier_1 = self.roles['tier_1']
+            tier_2 = self.roles['tier_2']
+            tier_3 = self.roles['tier_3']
+            overide_role = self.roles['overide_role']
             server_roles = []
             for role in guild.roles:
                 server_roles.append({
@@ -90,12 +93,12 @@ class ServerSetupCog(commands.Cog):
             result = self.cursor.fetchone()
             existing = result[0] if result else None
             if existing:
-                update_sql = "UPDATE channels_roles SET server_id = %s, subscriber_role = %s, overide_role = %s, notifications = %s, registrations = %s, server_roles = %s, server_channels = %s WHERE server_id = %s"
-                server_data = (server_id, subscriber_role_id, overide_role_id, notifications_channel_id, registrations_channel_id, server_roles_json, server_channels_json, server_id)
+                update_sql = "UPDATE channels_roles SET server_id = %s, subscriber_role = %s, tier_1 = %s, tier_2 = %s, tier_3 = %s, overide_role = %s, notifications = %s, registrations = %s, server_roles = %s, server_channels = %s WHERE server_id = %s"
+                server_data = (server_id, subscriber_role, tier_1, tier_2, tier_3, overide_role, notifications_channel_id, registrations_channel_id, server_roles_json, server_channels_json, server_id)
                 self.cursor.execute(update_sql, server_data)
             else:
-                insert_sql = "INSERT INTO channels_roles (server_id, subscriber_role, overide_role, notifications, registrations, server_roles, server_channels) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                server_data = (server_id, subscriber_role_id, overide_role_id, notifications_channel_id, registrations_channel_id, server_roles_json, server_channels_json)
+                insert_sql = "INSERT INTO channels_roles (server_id, subscriber_role, tier_1, tier_2, tier_3, overide_role, notifications, registrations, server_roles, server_channels) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                server_data = (server_id, subscriber_role, tier_1, tier_2, tier_3, overide_role, notifications_channel_id, registrations_channel_id, server_roles_json, server_channels_json)
                 self.cursor.execute(insert_sql, server_data)
             self.conn.commit()
             print("Saved server roles.")
