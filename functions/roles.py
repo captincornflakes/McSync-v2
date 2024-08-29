@@ -2,9 +2,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import View, Select
-import _asyncio
+import asyncio
 
-class ServerRoles(commands.Cog):
+class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.conn = bot.db_connection  # Access the connection from the bot instance
@@ -17,7 +17,7 @@ class ServerRoles(commands.Cog):
             "overide_role": "McSync Overide"
         }
    
-    @app_commands.command(name="roles", description="Setup roles for users.")
+    @app_commands.command(name="roles", description="Select roles for the server for subscribers and a overide role.")
     @app_commands.default_permissions(administrator=True)
     async def role_setup(self, ctx):
         embed = discord.Embed(
@@ -60,4 +60,4 @@ class ServerRoles(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(ServerRoles(bot))
+    await bot.add_cog(Roles(bot))

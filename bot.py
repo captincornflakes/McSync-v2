@@ -55,7 +55,7 @@ async def load_extensions_from_folder(folder):
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.listening, name=f"{PREFIX}help")
+    activity = discord.Activity(type=discord.ActivityType.listening, name=f"McSync.live")
     await bot.change_presence(status=discord.Status.idle, activity=activity)
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
 

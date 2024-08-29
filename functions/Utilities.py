@@ -8,7 +8,7 @@ class Utilities(commands.Cog):
         self.conn = bot.db_connection  # Access the connection from the bot instance
         self.cursor = self.conn.cursor()
 
-    @app_commands.command(name="clear", description="Clears a number of messages from the channel, including bot messages.")
+    @app_commands.command(name="clear", description="(for dev)")
     @app_commands.default_permissions(administrator=True)
     async def clear(self, interaction: discord.Interaction, amount: int = 100):
         """
@@ -40,7 +40,7 @@ class Utilities(commands.Cog):
 
 
    
-    @discord.app_commands.command(name="delete", description="Deletes the server, all associated data, and the mcsync category.")
+    @discord.app_commands.command(name="delete", description="(for dev)")
     @discord.app_commands.default_permissions(administrator=True)
     async def delete_server(self, interaction: discord.Interaction):
         server_id = interaction.guild.id

@@ -39,9 +39,6 @@ class MinecraftNameCog(commands.Cog):
             roles = [{"name": role.name, "id": role.id} for role in user.roles if role.name != "@everyone"]
             roles_json = json.dumps(roles)  # Convert roles list to JSON string
 
-            subscriber = ""  # Add logic if needed
-            follower = ""  # Add logic if needed
-            overide = ""  # Add logic if needed
 
             if not token or not minecraft_uuid:
                 return "Failed to register. Missing token or Minecraft UUID."
@@ -52,26 +49,13 @@ class MinecraftNameCog(commands.Cog):
 
             if exists:
                 # Update the existing record
-                sql = """
-                UPDATE users 
-                SET minecraft_name = %s, minecraft_uuid = %s, roles = %s, subscriber = %s, follower = %s, overide = %s 
-                WHERE discord_id = %s AND token = %s
-                """
-                self.cursor.execute(sql, (
-                    minecraft_name, minecraft_uuid, roles_json, 
-                    subscriber, follower, overide, discord_id, token
-                ))
+                sql = "UPDATE users SET minecraft_name = %s, minecraft_uuid = %s, roles = %s WHERE discord_id = %s AND token = %s"
+                self.cursor.execute(sql, (minecraft_name, minecraft_uuid, roles_json, discord_id, token))
                 message = "Record updated successfully."
             else:
                 # Insert a new record
-                sql = """
-                INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, subscriber, follower, overide)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                self.cursor.execute(sql, (
-                    token, minecraft_name, minecraft_uuid, discord_name, discord_id, 
-                    roles_json, subscriber, follower, overide
-                ))
+                sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json))
                 message = "User successfully added to the database."
 
             self.conn.commit()
@@ -85,7 +69,6 @@ class MinecraftNameCog(commands.Cog):
 
     @discord.app_commands.command(name="mcsync", description="Register a Minecraft name to the current token.")
     async def mcsync(self, interaction: discord.Interaction, minecraftname: str):
-        """Command to register or update a Minecraft name to the current token and include user info and roles."""
         result = await self.add_minecraft(interaction.guild, minecraftname, interaction.user)
         await interaction.response.send_message(
             f"{result}" if result else "Error.",

@@ -54,7 +54,7 @@ class TokenCog(commands.Cog):
 
         return new_token
 
-    @discord.app_commands.command(name="token", description="Generates a new Minecraft token.Place thsi token in the plugins config folder.")
+    @discord.app_commands.command(name="token", description="Generates a new Minecraft token. Place this token in the plugins config folder.")
     @discord.app_commands.default_permissions(administrator=True)
     async def token(self, interaction: discord.Interaction):
         """Generates a new Minecraft token and updates it in the server's JSON file and database."""

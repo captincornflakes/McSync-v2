@@ -7,7 +7,7 @@ import json
 import secrets
 import string
 
-class ServerSetupCog(commands.Cog):
+class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.conn = bot.db_connection  # Access the connection from the bot instance
@@ -25,7 +25,6 @@ class ServerSetupCog(commands.Cog):
         characters = string.ascii_letters + string.digits
         return ''.join(secrets.choice(characters) for i in range(length))
    
-    @commands.command()
     async def add_server(self, guild):  
         try:
             server_id = guild.id
@@ -57,7 +56,6 @@ class ServerSetupCog(commands.Cog):
             print(f"An error occurred: {e}")
             self.conn.rollback()
 
-    @commands.command()
     async def add_channels_roles(self, guild):  
         try:
             server_id = guild.id
@@ -107,7 +105,6 @@ class ServerSetupCog(commands.Cog):
             print(f"An error occurred: {e}")
             self.conn.rollback()
  
-    @commands.command()
     async def add_channels(self, guild):  
         category_name = 'McSync'
         category = discord.utils.get(guild.categories, name=category_name)
@@ -121,7 +118,7 @@ class ServerSetupCog(commands.Cog):
             await guild.create_text_channel('notifications', category=category)
             await guild.create_text_channel('registrations', category=category)
 
-    @app_commands.command(name="setup", description="Sets up the server in the database and generate channels.")
+    @app_commands.command(name="setup", description="Setup your server with McSync.")
     @app_commands.default_permissions(administrator=True)
     async def setup(self, interaction: discord.Interaction):
         print(f"Setup Called - {interaction.guild.name}.")
@@ -131,4 +128,4 @@ class ServerSetupCog(commands.Cog):
         await interaction.response.send_message(f"Server setup complete. Token is {token}", ephemeral=True)
 
 async def setup(bot):
-    await bot.add_cog(ServerSetupCog(bot))
+    await bot.add_cog(Setup(bot))

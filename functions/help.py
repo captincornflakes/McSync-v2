@@ -1,31 +1,30 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discord.ui import View, Select
 
-class HelpCog(commands.Cog):
+class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @app_commands.command(name="help", description="help function.")
     @app_commands.default_permissions(administrator=True)
-    async def help_command(self, ctx):
+    async def help_command(self, interaction: discord.Interaction):
         # Create an embed for the help message
         embed = discord.Embed(
             title="Bot Commands",
             description="Here is a list of available commands:",
             color=discord.Color.blue()
         )
-
-        # Loop through all the commands and add them to the embed
-        for command in self.bot.commands:
-            embed.add_field(name=command.name, value=command.help or "No description", inline=False)
-
-        # Add links to the embed
-        embed.add_field(name="Discord Server", value="[Join our Discord](https://your-discord-link)", inline=False)
-        embed.add_field(name="Website", value="[Visit our Website](https://your-website-link)", inline=False)
-
-        # Send the embed
-        await ctx.send(embed=embed)
+        for command in self.bot.tree.walk_commands():
+            embed.add_field(
+                name=f"/{command.name}", 
+                value=command.description or "No description", 
+                inline=False
+            )
+        embed.add_field(name="Discord Server", value="[Join our Discord](https://discord.gg/VZgJQuNhep)", inline=False)
+        embed.add_field(name="Website", value="[Visit our Website](https://mcsync.live)", inline=False)
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(HelpCog(bot))
+    await bot.add_cog(Help(bot))
