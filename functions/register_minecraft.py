@@ -34,7 +34,8 @@ class MinecraftNameCog(commands.Cog):
             minecraft_uuid = await self.get_uuid(minecraftname)
             discord_name = user.name
             discord_id = user.id
-
+            created = ""
+            lastcon = ""
             # Gather the user's roles
             roles = [{"name": role.name, "id": role.id} for role in user.roles if role.name != "@everyone"]
             roles_json = json.dumps(roles)  # Convert roles list to JSON string
@@ -54,8 +55,8 @@ class MinecraftNameCog(commands.Cog):
                 message = "Record updated successfully."
             else:
                 # Insert a new record
-                sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles) VALUES (%s, %s, %s, %s, %s, %s)"
-                self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json))
+                sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, created, lastcon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json, created, lastcon))
                 message = "User successfully added to the database."
 
             self.conn.commit()
