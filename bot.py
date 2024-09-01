@@ -28,7 +28,7 @@ intents.guilds = True   # Required to receive guild events
 PREFIX = "!"
 # Load application_id as an integer
 application_id = int(config['application_id'])
-bot = commands.Bot(command_prefix=PREFIX, intents=intents, application_id=application_id, help_command=None)
+bot = commands.AutoShardedBot(command_prefix=PREFIX, intents=intents, application_id=application_id, help_command=None)
 
 # Set up the database connection
 db_config = config['database']
@@ -61,6 +61,8 @@ async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.watching, name=f"MCSync.live")
     await bot.change_presence(status=discord.Status.online, activity=activity)
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
+    print(f"Shard ID: {bot.shard_id}")
+    print(f"Total Shards: {bot.shard_count}")
 
 # Event: Sync commands when bot joins a new guild
 @bot.event
