@@ -63,6 +63,9 @@ async def on_ready():
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     print(f"Shard ID: {bot.shard_id}")
     print(f"Total Shards: {bot.shard_count}")
+    
+    for shard_id, latency in bot.latencies:
+        print(f"Shard ID: {shard_id} | Latency: {latency*1000:.2f}ms")
 
 # Event: Sync commands when bot joins a new guild
 @bot.event
