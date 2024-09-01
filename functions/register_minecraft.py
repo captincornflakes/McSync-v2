@@ -54,7 +54,7 @@ class MinecraftNameCog(commands.Cog):
                 message = "Record updated successfully."
             else:
                 # Insert a new record
-                sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles) VALUES (%s, %s, %s, %s, %s, %s)"
                 self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json))
                 message = "User successfully added to the database."
 
