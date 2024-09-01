@@ -161,10 +161,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 datastores/config.json
-datastores/1234351991313006622.json
 Info.txt
 *.bat
-datastores/nEiE7wZYzpm8blwZRwa9YEWdRfpptfFi.json
-datastores/config-prod.json
 Website/
 plugin/
