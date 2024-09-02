@@ -165,3 +165,4 @@ Info.txt
 *.bat
 Website/
 plugin/
+datastores/config-dev.json

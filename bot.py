@@ -13,9 +13,24 @@ import mysql.connector
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 logging.basicConfig(level=logging.INFO, handlers=[handler])
    
-# Load database configuration from config.json
-with open('datastores/config.json') as config_file:
-    config = json.load(config_file)
+def load_config():
+    config_file = "datastores/config-dev.json"
+    fallback_config_file = "datastores/config-prod.json"
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+            print(f"Loaded configuration from {config_file}.")
+    except FileNotFoundError:
+        try:
+            with open(fallback_config_file, 'r') as f:
+                config = json.load(f)
+                print(f"{config_file} not found. Loaded configuration from {fallback_config_file}.")
+        except FileNotFoundError:
+            print(f"Error: Neither {config_file} nor {fallback_config_file} could be found.")
+            raise
+    return config
+# Example usage
+config = load_config()
 
 # Define the intents you want your bot to have
 intents = discord.Intents.default()
