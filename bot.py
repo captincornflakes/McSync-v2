@@ -6,21 +6,29 @@ import tracemalloc
 import logging
 import asyncio
 import mysql.connector
+import requests
+import zipfile
+import io
+import os
+import shutil
 
 #pip install mysql-connector-python
 
 # Enable logging
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 logging.basicConfig(level=logging.INFO, handlers=[handler])
-   
+
+system = "dev"
 def load_config():
     config_file = "datastores/config-dev.json"
     fallback_config_file = "datastores/config-prod.json"
     try:
+        system = "dev"
         with open(config_file, 'r') as f:
             config = json.load(f)
             print(f"Loaded configuration from {config_file}.")
     except FileNotFoundError:
+        system = "live"
         try:
             with open(fallback_config_file, 'r') as f:
                 config = json.load(f)
@@ -39,6 +47,40 @@ intents.members = True  # Required to receive member update events
 intents.guilds = True   # Required to receive guild events
 
 
+def download_repo_as_zip(repo_url, token, temp_folder):
+    zip_url = f"{repo_url}/archive/refs/heads/main.zip"
+    headers = {'Authorization': f'token {token}'}
+    response = requests.get(zip_url, headers=headers)
+    response.raise_for_status()  # Ensure we notice bad responses
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+        zip_file.extractall(temp_folder)
+        print(f"Extracted repository to {temp_folder}")
+
+def extract_functions_folder(temp_folder, target_folder):
+    repo_folder = os.path.join(temp_folder, "McSync-v2-main")
+    functions_folder = os.path.join(repo_folder, "functions")
+    if os.path.exists(target_folder):
+        shutil.rmtree(target_folder)
+        print(f"Removed existing target folder: {target_folder}")
+    os.makedirs(target_folder, exist_ok=True)
+    for item in os.listdir(functions_folder):
+        s = os.path.join(functions_folder, item)
+        d = os.path.join(target_folder, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, False, None)
+        else:
+            shutil.copy2(s, d)
+
+if system == "live":
+    print("LivPulling from Github")
+    repo_url = "https://github.com/captincornflakes/McSync-v2"
+    token = "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" 
+    temp_folder = "repository_contents"
+    target_folder = "functions"
+    download_repo_as_zip(repo_url, token, temp_folder)
+    extract_functions_folder(temp_folder, target_folder)
+
+    shutil.rmtree(temp_folder)
 
 
 # Prefix and bot initialization
