@@ -39,6 +39,8 @@ intents.members = True  # Required to receive member update events
 intents.guilds = True   # Required to receive guild events
 
 
+
+
 # Prefix and bot initialization
 PREFIX = "!"
 # Load application_id as an integer
@@ -55,6 +57,13 @@ db_connection = mysql.connector.connect(
 )
 # Store the connection in the bot instance
 bot.db_connection = db_connection
+
+#bot defaults
+bot.subscriber = "Twitch Subscriber"
+bot.tier_1 = "Twitch Subscriber: Tier 1"
+bot.tier_2 = "Twitch Subscriber: Tier 2"
+bot.tier_3 = "Twitch Subscriber: Tier 3"
+
 
 # Start memory tracking
 tracemalloc.start()
@@ -73,7 +82,7 @@ async def load_extensions_from_folder(folder):
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.watching, name=f"MCSync.live")
+    activity = discord.Activity(type=discord.ActivityType.streaming, name=f"Development MCSync.live")
     await bot.change_presence(status=discord.Status.online, activity=activity)
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     print(f"Shard ID: {bot.shard_id}")

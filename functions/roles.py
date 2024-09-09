@@ -1,63 +1,153 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
-from discord.ui import View, Select
-import asyncio
+from discord import app_commands
 
 class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.conn = bot.db_connection  # Access the connection from the bot instance
+        self.conn = bot.db_connection  # Assuming the connection is passed from the bot
         self.cursor = self.conn.cursor()
-        self.roles = {
-            "subscriber": "Twitch Subscriber",
-            "tier_1": "Twitch Subscriber: Tier 1",
-            "tier_2": "Twitch Subscriber: Tier 2",
-            "tier_3": "Twitch Subscriber: Tier 3",
-            "overide_role": "McSync Overide"
-        }
-   
-    @app_commands.command(name="roles", description="Select roles for the server for subscribers and a overide role.")
-    @app_commands.default_permissions(administrator=True)
-    async def role_setup(self, ctx):
-        embed = discord.Embed(
-            title="Role Setup",
-            description="Would you like to customize the role setup or use the default Discord roles?",
-            color=discord.Color.blue()
-        )
-        embed.add_field(name="Customize", value="React with 🛠️ to customize the role setup.", inline=False)
-        embed.add_field(name="Default", value="React with ✅ to use default Discord roles.", inline=False)
-        message = await ctx.send(embed=embed)
-        await message.add_reaction("🛠️")
-        await message.add_reaction("✅")
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) in ["🛠️", "✅"]
-        try:
-            reaction, user = await self.bot.wait_for("reaction_add", timeout=60.0, check=check)
-            if str(reaction.emoji) == "🛠️":
-                await ctx.send("You chose to customize the role setup.")
-                await self.custom_role_setup(ctx)
-            elif str(reaction.emoji) == "✅":
-                await ctx.send("You chose to use the default Discord roles.")
-                await self.default_role_setup(ctx)
+        self.subscriber = bot.subscriber
+        self.tier_1 = bot.tier_1
+        self.tier_2 = bot.tier_2
+        self.tier_3 = bot.tier_3
 
-        except asyncio.TimeoutError:
-            await ctx.send("Role setup timed out. Please try again.")
-
-    async def custom_role_setup(self, ctx):
-        await ctx.send("Starting custom role setup...")
-        # Custom role setup logic here
-
-    async def default_role_setup(self, ctx):
-        role_names = self.roles
-        server_id = ctx.guild.id
-        guild = ctx.guild
-        query = "UPDATE channels_roles SET subscriber_role = %s, tier_1 = %s, tier_2 = %s, tier_3 = %s, overide_role = %s WHERE server_id = %s"
-        self.cursor.execute(query, (role_names.get("subscriber_role"), role_names.get("tier_1"), role_names.get("tier_2"), role_names.get("tier_3"), role_names.get("overide_role"), server_id))
+    def update_channels_roles(self, server_id, column, role):
+        query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
+        self.cursor.execute(query, (role, server_id))
         self.conn.commit()
-        await guild.create_role(name=role_names.get("overide_role"), reason="Role created by bot command")
-        await ctx.send("Default Discord roles have been set up and stored in the database.")
 
+    async def update_subscriber_role(self, interaction: discord.Interaction):
+        server_id = interaction.guild.id
+        role_name = self.subscriber
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if role:
+            await interaction.followup.send(f"'Twitch Subscriber' role already exists: {role.mention}", ephemeral=True)
+            self.update_channels_roles(server_id, 'subscriber_role', role.name)
+            await self.update_tier_1_role(interaction)
+        else:
+            class RoleSelect(discord.ui.Select):
+                def __init__(self, roles):
+                    options = [
+                        discord.SelectOption(label=role.name, value=str(role.name))
+                        for role in roles
+                    ]
+                    super().__init__(placeholder="Select a subscriber role...", options=options)
+
+                async def callback(self, select_interaction: discord.Interaction):
+                    selected_role_name = self.values[0]
+                    selected_role = discord.utils.get(select_interaction.guild.roles, name=selected_role_name)
+                    if selected_role:
+                        await select_interaction.response.send_message(f"You selected {selected_role.mention} as the subscriber role.", ephemeral=True)
+                        self.view.cog.update_channels_roles(server_id, 'subscriber_role', selected_role_name)
+                        await self.view.cog.update_tier_1_role(select_interaction)
+
+            roles = [role for role in interaction.guild.roles if role.managed and role != interaction.guild.default_role]
+            select = RoleSelect(roles)
+            view = discord.ui.View(timeout=60)
+            view.add_item(select)
+            view.cog = self
+            await interaction.followup.send("Please select a role from the dropdown:", view=view, ephemeral=True)
+
+    async def update_tier_1_role(self, interaction: discord.Interaction):
+        server_id = interaction.guild.id
+        role_name = self.tier_1
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if role:
+            await interaction.followup.send(f"'Twitch Subscriber: Tier 1' role already exists: {role.mention}", ephemeral=True)
+            self.update_channels_roles(server_id, 'tier_1', role.name)
+            await self.update_tier_2_role(interaction)
+        else:
+            class RoleSelect(discord.ui.Select):
+                def __init__(self, roles):
+                    options = [
+                        discord.SelectOption(label=role.name, value=str(role.name))
+                        for role in roles
+                    ]
+                    super().__init__(placeholder="Select a Tier 1 role...", options=options)
+
+                async def callback(self, select_interaction: discord.Interaction):
+                    selected_role_name = self.values[0]
+                    selected_role = discord.utils.get(select_interaction.guild.roles, name=selected_role_name)
+                    if selected_role:
+                        await select_interaction.response.send_message(f"You selected {selected_role.mention} as the Tier 1 role.", ephemeral=True)
+                        self.view.cog.update_channels_roles(server_id, 'tier_1', selected_role_name)
+                        await self.view.cog.update_tier_2_role(select_interaction)
+
+            roles = [role for role in interaction.guild.roles if role.managed and role != interaction.guild.default_role]
+            select = RoleSelect(roles)
+            view = discord.ui.View(timeout=60)
+            view.add_item(select)
+            view.cog = self
+            await interaction.followup.send("Please select a role from the dropdown:", view=view, ephemeral=True)
+
+    async def update_tier_2_role(self, interaction: discord.Interaction):
+        server_id = interaction.guild.id
+        role_name = self.tier_2
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if role:
+            await interaction.followup.send(f"'Twitch Subscriber: Tier 2' role already exists: {role.mention}", ephemeral=True)
+            self.update_channels_roles(server_id, 'tier_2', role.name)
+            await self.update_tier_3_role(interaction)
+        else:
+            class RoleSelect(discord.ui.Select):
+                def __init__(self, roles):
+                    options = [
+                        discord.SelectOption(label=role.name, value=str(role.name))
+                        for role in roles
+                    ]
+                    super().__init__(placeholder="Select a Tier 2 role...", options=options)
+
+                async def callback(self, select_interaction: discord.Interaction):
+                    selected_role_name = self.values[0]
+                    selected_role = discord.utils.get(select_interaction.guild.roles, name=selected_role_name)
+                    if selected_role:
+                        await select_interaction.response.send_message(f"You selected {selected_role.mention} as the Tier 2 role.", ephemeral=True)
+                        self.view.cog.update_channels_roles(server_id, 'tier_2', selected_role_name)
+                        await self.view.cog.update_tier_3_role(select_interaction)
+
+            roles = [role for role in interaction.guild.roles if role.managed and role != interaction.guild.default_role]
+            select = RoleSelect(roles)
+            view = discord.ui.View(timeout=60)
+            view.add_item(select)
+            view.cog = self
+            await interaction.followup.send("Please select a role from the dropdown:", view=view, ephemeral=True)
+
+    async def update_tier_3_role(self, interaction: discord.Interaction):
+        server_id = interaction.guild.id
+        role_name = self.tier_3
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if role:
+            await interaction.followup.send(f"'Twitch Subscriber: Tier 3' role already exists: {role.mention}", ephemeral=True)
+            self.update_channels_roles(server_id, 'tier_3', role.name)
+        else:
+            class RoleSelect(discord.ui.Select):
+                def __init__(self, roles):
+                    options = [
+                        discord.SelectOption(label=role.name, value=str(role.name))
+                        for role in roles
+                    ]
+                    super().__init__(placeholder="Select a Tier 3 role...", options=options)
+
+                async def callback(self, select_interaction: discord.Interaction):
+                    selected_role_name = self.values[0]
+                    selected_role = discord.utils.get(select_interaction.guild.roles, name=selected_role_name)
+                    if selected_role:
+                        await select_interaction.response.send_message(f"You selected {selected_role.mention} as the Tier 3 role.", ephemeral=True)
+                        self.view.cog.update_channels_roles(server_id, 'tier_3', selected_role_name)
+
+            roles = [role for role in interaction.guild.roles if role.managed and role != interaction.guild.default_role]
+            select = RoleSelect(roles)
+            view = discord.ui.View(timeout=60)
+            view.add_item(select)
+            view.cog = self
+            await interaction.followup.send("Please select a role from the dropdown:", view=view, ephemeral=True)
+
+    @app_commands.command(name="roles", description="Setup your server with MCSync roles.")
+    @app_commands.default_permissions(administrator=True)
+    async def roles(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)  # Defer the initial response to keep the interaction alive
+        await self.update_subscriber_role(interaction)
 
 async def setup(bot):
     await bot.add_cog(Roles(bot))

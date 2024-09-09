@@ -43,11 +43,11 @@ class Listeners(commands.Cog):
     async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
         if before.name != after.name:
             guild_id = before.guild.id
-            query = "SELECT server_roles, subscriber_role, tier_1, tier_2, tier_3 FROM channels_roles WHERE server_id = %s"
+            query = "SELECT server_roles, subscriber_role, tier_1, tier_2, tier_3, override_role FROM channels_roles WHERE server_id = %s"
             self.cursor.execute(query, (guild_id,))
             result = self.cursor.fetchone()
             if result:
-                server_roles, subscriber_role, tier_1, tier_2, tier_3 = result
+                server_roles, subscriber_role, tier_1, tier_2, tier_3, override_role = result
                 server_roles = json.loads(server_roles)
                 updated = False
                 for role in server_roles:
@@ -67,11 +67,14 @@ class Listeners(commands.Cog):
                 if tier_3 == before.name:
                     tier_3 = after.name
                     updated = True
+                if override_role == before.name:
+                    override_role = after.name
+                    updated = True
                 if updated:
                     updated_server_roles = json.dumps(server_roles)
-                    update_query = "UPDATE channels_roles SET server_roles = %s, subscriber_role = %s, tier_1 = %s, tier_2 = %s, tier_3 = %s WHERE server_id = %s"
+                    update_query = "UPDATE channels_roles SET server_roles = %s, subscriber_role = %s, tier_1 = %s, tier_2 = %s, tier_3 = %s, override_role = %s WHERE server_id = %s"
                     try:
-                        self.cursor.execute(update_query, (updated_server_roles, subscriber_role, tier_1, tier_2, tier_3, guild_id))
+                        self.cursor.execute(update_query, (updated_server_roles, subscriber_role, tier_1, tier_2, tier_3, override_role, guild_id))
                         self.conn.commit()
                     except Exception as e:
                         print(f"Failed to update server roles or tier roles in the database: {e}")
@@ -107,9 +110,8 @@ class Listeners(commands.Cog):
             server_id = after.id
             new_name = after.name
             new_owner_id = after.owner_id
-            new_users_count = len(after.members)
-            update_sql = "UPDATE servers SET server_name = %s, owner = %s, users = %s WHERE server_id = %s"
-            update_data = (new_name, new_owner_id, new_users_count, server_id)
+            update_sql = "UPDATE servers SET server_name = %s, owner = %s WHERE server_id = %s"
+            update_data = (new_name, new_owner_id, server_id)
             self.cursor.execute(update_sql, update_data)
             self.conn.commit()
             print(f"Updated server information for ID {server_id}.")
@@ -123,13 +125,9 @@ class Listeners(commands.Cog):
             server_id = guild.id
             server_name = guild.name
             minecraft_token = self.generate_random_token()
-            integrated = ""
             owner = guild.owner_id
-            users = len(guild.members)
-            plus = 0
-            icon = ""
-            insert_sql = "INSERT INTO servers (server_id, server_name, minecraft_token, integrated, owner, users, plus) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-            server_data = (server_id, server_name, minecraft_token, integrated, owner, users, plus)
+            insert_sql = "INSERT INTO servers (server_id, server_name, minecraft_token, owner) VALUES (%s, %s, %s, %s)"
+            server_data = (server_id, server_name, minecraft_token, owner)
             self.cursor.execute(insert_sql, server_data)
             self.conn.commit()
             print(f"Server '{server_name}' (ID: {server_id}) has been added to the database.")

@@ -1,186 +1,144 @@
-import discord
-from discord import app_commands
-from discord.ext import commands
-from discord.ui import View, Select
-import os
 import json
-import secrets
+import discord
+from discord.ext import commands
+from discord import app_commands
 import string
+import secrets
 
 class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.conn = bot.db_connection  # Access the connection from the bot instance
+        self.conn = bot.db_connection  # Assuming the connection is passed from the bot
         self.cursor = self.conn.cursor()
-        self.roles = {
-            "subscriber": "Twitch Subscriber",
-            "tier_1": "Twitch Subscriber: Tier 1",
-            "tier_2": "Twitch Subscriber: Tier 2",
-            "tier_3": "Twitch Subscriber: Tier 3",
-            "overide_role": "McSync Overide"
-        }
+        self.override_role = "MCSync Override"
+        self.category_name = "MCSync"
+        self.subscriber = bot.subscriber
+        self.tier_1 = bot.tier_1
+        self.tier_2 = bot.tier_2
+        self.tier_3 = bot.tier_3
 
     def generate_random_token(self, length=32):
+        """Generate a unique 32-character Minecraft token."""
         characters = string.ascii_letters + string.digits
         while True:
             token = ''.join(secrets.choice(characters) for _ in range(length))
+            # Ensure token is unique by checking the database
             self.cursor.execute("SELECT COUNT(*) FROM servers WHERE minecraft_token = %s", (token,))
             if self.cursor.fetchone()[0] == 0:
                 return token
-            continue
-   
+
+    async def add_override(self, guild):  
+        existing_role = discord.utils.get(guild.roles, name=self.override_role)
+        if not existing_role:
+            await guild.create_role(name=self.override_role, reason="Role created by bot command")
+        return f"Override role created: {self.override_role}"
+    
+    async def add_channels(self, guild):
+        category_name = self.category_name
+        category = discord.utils.get(guild.categories, name=category_name)
+        if not category:
+            category = await guild.create_category(category_name)
+            for role in guild.roles:
+                if role.permissions.administrator:
+                    await category.set_permissions(role, read_messages=True)
+        notifications_channel = discord.utils.get(category.channels, name='notifications')
+        if not notifications_channel:
+            await guild.create_text_channel('notifications', category=category)
+        registrations_channel = discord.utils.get(category.channels, name='registrations')
+        if not registrations_channel:
+            await guild.create_text_channel('registrations', category=category)
+        return "Channels created or verified."
+
+
+    def update_channels_roles(self, server_id, column, role):
+        query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
+        self.cursor.execute(query, (role, server_id))
+        self.conn.commit()
+
+    async def add_channels_roles(self, guild):
+        try:
+            server_id = guild.id
+            server_roles = []
+            notifications = ""
+            registrations = ""
+            subscriber = ""
+            tier_1 = ""
+            tier_2 = ""
+            tier_3 = ""
+            for role in guild.roles:
+                server_roles.append({"name": role.name, "id": role.id, "managed": role.managed})
+                if role.name == self.subscriber:
+                    subscriber = role.name
+                if role.name == self.tier_1:
+                    tier_1 = role.name
+                if role.name == self.tier_2:
+                    tier_2 = role.name
+                if role.name == self.tier_3:
+                    tier_3 = role.name
+                    
+            server_roles_json = json.dumps(server_roles)
+            server_channels = []
+            for channel in guild.channels:
+                if channel.type not in {discord.ChannelType.voice, discord.ChannelType.category}:
+                    server_channels.append({"channel_name": channel.name, "channel_id": channel.id})
+                    if channel.name == "notifications":
+                        notifications = channel.id
+                    if channel.name == "registrations":
+                        registrations = channel.id
+            server_channels_json = json.dumps(server_channels)
+            update_sql = "UPDATE channels_roles SET subscriber_role = %s, tier_1 = %s, tier_2 = %s, tier_3 = %s, notifications = %s, registrations = %s, override_role = %s, server_roles = %s, server_channels = %s WHERE server_id = %s"
+            server_data = ( subscriber, tier_1, tier_2, tier_3, notifications, registrations, self.override_role, server_roles_json, server_channels_json, server_id)
+            self.cursor.execute(update_sql, server_data)
+            self.conn.commit()
+            if subscriber == "" or tier_1 == "" or tier_2 == "" or tier_3 == "":
+                return "Integration roles are not the default, Please run /roles to select roles."
+            else:
+                return "Integration roles set to default."
+        except Exception as e:
+            print(f"An Channels & Roles error occurred: {e}")
+            self.conn.rollback()
+            return f"An error occurred saving roles."
+
     async def add_server(self, guild):  
         try:
             server_id = guild.id
             server_name = guild.name
-            new_minecraft_token = self.generate_random_token()
-            integrated = False
             owner = guild.owner_id
-            users = len(guild.members)
-            plus = False
-            # Check if the server already exists
+            new_minecraft_token = self.generate_random_token()
             self.cursor.execute("SELECT minecraft_token FROM servers WHERE server_id = %s", (server_id,))
             result = self.cursor.fetchone()
             existing_token = result[0] if result else None
-            
             if existing_token:
-                # Update existing server record
-                update_sql = """
-                    UPDATE servers 
-                    SET server_name = %s, minecraft_token = %s, integrated = %s, owner = %s, users = %s, plus = %s 
-                    WHERE server_id = %s
-                """
-                server_data = (server_name, new_minecraft_token, integrated, owner, users, plus, server_id)
+                update_sql = "UPDATE servers SET server_name = %s, minecraft_token = %s, owner = %s WHERE server_id = %s"
+                server_data = (server_name, new_minecraft_token, owner, server_id)
                 self.cursor.execute(update_sql, server_data)
-            else:
-                # Insert new server record
-                insert_sql = """
-                    INSERT INTO servers (server_id, server_name, minecraft_token, integrated, owner, users, plus) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """
-                server_data = (server_id, server_name, new_minecraft_token, integrated, owner, users, plus)
-                self.cursor.execute(insert_sql, server_data)
-            
-            # Update user tokens if the server already existed
-            if existing_token:
                 update_users_sql = "UPDATE users SET token = %s WHERE token = %s"
                 self.cursor.execute(update_users_sql, (new_minecraft_token, existing_token))
-        
+            else:
+                insert_sql = "INSERT INTO servers (server_id, server_name, minecraft_token, owner) VALUES (%s, %s, %s, %s)"
+                server_data = (server_id, server_name, new_minecraft_token, owner)
+                self.cursor.execute(insert_sql, server_data)
             self.conn.commit()
+            query = "SELECT COUNT(*) FROM channels_roles WHERE server_id = %s"
+            self.cursor.execute(query, (server_id,))
+            if self.cursor.fetchone()[0] == 0:
+                insert_query = "INSERT INTO channels_roles (server_id, server_roles, server_channels) VALUES (%s, %s, %s)"
+                self.cursor.execute(insert_query, (server_id, "[]", "[]"))
+                self.conn.commit()
             print("Server data successfully added to the database.")
             return new_minecraft_token
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An Server add error occurred: {e}")
             self.conn.rollback()
 
-    async def add_channels_roles(self, guild: discord.Guild):
-        try:
-            server_id = guild.id
-
-            # Retrieve roles from self.roles
-            subscriber_role = self.roles.get('subscriber')
-            tier_1 = self.roles.get('tier_1')
-            tier_2 = self.roles.get('tier_2')
-            tier_3 = self.roles.get('tier_3')
-            override_role = self.roles.get('override_role')
-
-            # Collect server roles
-            server_roles = []
-            for role in guild.roles:
-                server_roles.append({
-                    "name": role.name,
-                    "id": role.id,
-                    "permissions": role.permissions.value,
-                    "color": role.color.value,
-                    "managed": role.managed
-                })
-            server_roles_json = json.dumps(server_roles)
-
-            # Collect server channels
-            server_channels = []
-            for channel in guild.channels:
-                server_channels.append({
-                    "channel_name": channel.name,
-                    "channel_id": channel.id
-                })
-            server_channels_json = json.dumps(server_channels)
-
-            # Get category and channels
-            category = discord.utils.get(guild.categories, name='MCSync')
-            if category:
-                notifications_channel = discord.utils.get(category.channels, name='notifications')
-                registrations_channel = discord.utils.get(category.channels, name='registrations')
-
-                notifications_channel_id = notifications_channel.id if notifications_channel else None
-                registrations_channel_id = registrations_channel.id if registrations_channel else None
-            else:
-                notifications_channel_id = None
-                registrations_channel_id = None
-
-            # Check if the server_id already exists in the database
-            self.cursor.execute("SELECT server_id FROM channels_roles WHERE server_id = %s", (server_id,))
-            result = self.cursor.fetchone()
-            existing = result[0] if result else None
-
-            if existing:
-                # Update existing record
-                update_sql = """
-                    UPDATE channels_roles
-                    SET subscriber_role = %s, tier_1 = %s, tier_2 = %s, tier_3 = %s, override_role = %s, 
-                        notifications = %s, registrations = %s, server_roles = %s, server_channels = %s
-                    WHERE server_id = %s
-                """
-                server_data = (
-                    subscriber_role, tier_1, tier_2, tier_3, override_role, 
-                    notifications_channel_id, registrations_channel_id, 
-                    server_roles_json, server_channels_json, server_id
-                )
-                self.cursor.execute(update_sql, server_data)
-            else:
-                # Insert new record
-                insert_sql = """
-                    INSERT INTO channels_roles 
-                    (server_id, subscriber_role, tier_1, tier_2, tier_3, override_role, 
-                     notifications, registrations, server_roles, server_channels)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                server_data = (
-                    server_id, subscriber_role, tier_1, tier_2, tier_3, override_role, 
-                    notifications_channel_id, registrations_channel_id, 
-                    server_roles_json, server_channels_json
-                )
-                self.cursor.execute(insert_sql, server_data)
-
-            # Commit transaction
-            self.conn.commit()
-            print("Saved server roles.")
-            return "Saved server roles."
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            self.conn.rollback()
-
- 
-    async def add_channels(self, guild):  
-        category_name = 'McSync'
-        category = discord.utils.get(guild.categories, name=category_name)
-        if not category:
-            category = await guild.create_category(category_name)
-            overwrite = discord.PermissionOverwrite()
-            overwrite.read_messages = False
-            for role in guild.roles:
-                if role.permissions.administrator:
-                    await category.set_permissions(role, read_messages=True)
-            await guild.create_text_channel('notifications', category=category)
-            await guild.create_text_channel('registrations', category=category)
-
-    @app_commands.command(name="setup", description="Setup your server with McSync.")
+    @app_commands.command(name="setup", description="Setup your server with MCSync.")
     @app_commands.default_permissions(administrator=True)
     async def setup(self, interaction: discord.Interaction):
-        print(f"Setup Called - {interaction.guild.name}.")
-        token = await self.add_server(interaction.guild)
-        await self.add_channels(interaction.guild)
-        await self.add_channels_roles(interaction.guild)
-        await interaction.response.send_message(f"Server setup complete. Token is {token}", ephemeral=True)
+        await interaction.response.send_message("Setting up your server based on the guild information...", ephemeral=True)
+        await interaction.followup.send(f"Server Token set to: {await self.add_server(interaction.guild)}", ephemeral=True)
+        #await interaction.followup.send(f"{await self.add_channels(interaction.guild)}", ephemeral=True)
+        await interaction.followup.send(f"{await self.add_override(interaction.guild)}", ephemeral=True)
+        await interaction.followup.send(f"{await self.add_channels_roles(interaction.guild)}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Setup(bot))
