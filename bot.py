@@ -18,12 +18,12 @@ import shutil
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 
-system = "dev"
+system = "developer"
 def load_config():
     config_file = "datastores/config-dev.json"
     fallback_config_file = "datastores/config-prod.json"
     try:
-        system = "dev"
+        system = "developer"
         with open(config_file, 'r') as f:
             config = json.load(f)
             print(f"Loaded configuration from {config_file}.")
@@ -71,8 +71,9 @@ def extract_functions_folder(temp_folder, target_folder):
         else:
             shutil.copy2(s, d)
 
+print(f"We are in {system} mode.")
 if system == "live":
-    print("LivPulling from Github")
+    print("Pulling from Github")
     repo_url = "https://github.com/captincornflakes/McSync-v2"
     token = "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" 
     temp_folder = "repository_contents"
@@ -124,7 +125,10 @@ async def load_extensions_from_folder(folder):
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(type=discord.ActivityType.streaming, name=f"Development MCSync.live")
+    if system == "live":
+        activity = discord.Activity(type=discord.ActivityType.playing, name=f"MCSync.live")
+    else:
+        activity = discord.Activity(type=discord.ActivityType.streaming, name=f"Development MCSync.live")
     await bot.change_presence(status=discord.Status.online, activity=activity)
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     print(f"Shard ID: {bot.shard_id}")
