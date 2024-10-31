@@ -15,7 +15,7 @@ class MinecraftNameCog(commands.Cog):
             async with session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data['id']  # Return the UUID from the response data
+                    return data['id'] 
                 else:
                     return None
 
@@ -35,36 +35,39 @@ class MinecraftNameCog(commands.Cog):
             lastcon = ""
             roles = [{"name": role.name, "id": role.id} for role in user.roles if role.name != "@everyone"]
             roles_json = json.dumps(roles) 
-            if not token or not minecraft_uuid:
-                return "Failed to register. Missing token or Minecraft UUID."
+            if not minecraft_uuid:
+                return "Failed to register. The username is invalid."
+            if not token:
+                return "Failed to register. The Discord server is not setup for MCSync."
             self.cursor.execute('SELECT COUNT(*) FROM users WHERE discord_id = %s AND token = %s', (discord_id, token))
             exists = self.cursor.fetchone()[0]
             if exists:
+                message = "MCSync updated successfully."
                 sql = "UPDATE users SET minecraft_name = %s, minecraft_uuid = %s, roles = %s WHERE discord_id = %s AND token = %s"
                 self.cursor.execute(sql, (minecraft_name, minecraft_uuid, roles_json, discord_id, token))
-                message = "MCSync updated successfully."
             else:
+                message = "User successfully added to MCSync."
                 sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, created, lastcon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json, created, lastcon))
-                message = "User successfully added to MCSync."
-
             self.conn.commit()
             print(message)
             return message
-
         except Exception as e:
             print(f"An error occurred: {e}")
-            self.conn.rollback()  # Rollback in case of error
+            self.conn.rollback()  
             return "Registration failed due to a database error."
 
     @discord.app_commands.command(name="mcsync", description="Register a Minecraft name to the server.")
     async def mcsync(self, interaction: discord.Interaction, minecraftname: str):
         result = await self.add_minecraft(interaction.guild, minecraftname, interaction.user)
-        await interaction.response.send_message(
-            f"{result}" if result else "Error.",
-            ephemeral=True
-        )
+        embed = discord.Embed(
+            title="MCSync Registration",
+            description=f"{result}" if result else "An error occurred.",
+            color=discord.Color.green() if "successfully" in result.lower() else discord.Color.red()
+            )
+        embed.set_footer(text="MCSync Bot • Minecraft Registration")
+        embed.set_thumbnail(url=f"https://api.mcheads.org/ioshead/{minecraftname}") 
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# Setup function to add the cog to the bot
 async def setup(bot):
     await bot.add_cog(MinecraftNameCog(bot))

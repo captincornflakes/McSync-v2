@@ -13,6 +13,9 @@ import os
 import shutil
 
 #pip install mysql-connector-python
+#pip install discord.py
+#pip install requests
+
 
 # Enable logging
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')

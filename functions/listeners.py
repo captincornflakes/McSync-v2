@@ -97,6 +97,7 @@ class Listeners(commands.Cog):
             if result:
                 token = result[0]
                 self.cursor.execute("DELETE FROM users WHERE token = %s", (token,))
+                self.cursor.execute("DELETE FROM channels_roles WHERE server_id = %s", (server_id,))
                 print(f"Users with token {token} have been removed from the database.")
             self.cursor.execute("DELETE FROM servers WHERE server_id = %s", (server_id,))
             self.conn.commit()

@@ -95,9 +95,8 @@ class Setup(commands.Cog):
             else:
                 return "Integration roles set to default."
         except Exception as e:
-            print(f"An Channels & Roles error occurred: {e}")
             self.conn.rollback()
-            return f"An error occurred saving roles."
+            return "An error occurred saving roles."
 
     async def add_server(self, guild):  
         try:
@@ -131,14 +130,27 @@ class Setup(commands.Cog):
             print(f"An Server add error occurred: {e}")
             self.conn.rollback()
 
-    @app_commands.command(name="setup", description="Setup your server with MCSync.")
-    @app_commands.default_permissions(administrator=True)
-    async def setup(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Setting up your server based on the guild information...", ephemeral=True)
-        await interaction.followup.send(f"Server Token set to: {await self.add_server(interaction.guild)}", ephemeral=True)
         #await interaction.followup.send(f"{await self.add_channels(interaction.guild)}", ephemeral=True)
-        await interaction.followup.send(f"{await self.add_override(interaction.guild)}", ephemeral=True)
-        await interaction.followup.send(f"{await self.add_channels_roles(interaction.guild)}", ephemeral=True)
+    @discord.app_commands.command(name="setup", description="Setup your server with MCSync.")
+    @discord.app_commands.default_permissions(administrator=True)
+    async def setup(self, interaction: discord.Interaction):
+        # Initial response embed
+        embed = discord.Embed(
+            title="Server Setup Complete",
+            description="Your server has been set up with the following settings:",
+            color=discord.Color.blurple()
+        )
+        # Gather setup information
+        server_token = await self.add_server(interaction.guild)
+        override_status = await self.add_override(interaction.guild)
+        channels_roles_status = await self.add_channels_roles(interaction.guild)
+        # Append each step's result as a field
+        embed.add_field(name="Server Token", value=f"`{server_token}`", inline=False)
+        embed.add_field(name="Override Settings", value=override_status, inline=False)
+        embed.add_field(name="Channels and Roles", value=channels_roles_status, inline=False)
+        embed.set_footer(text="MCSync • Server Setup")
+        # Send the embed as a single response
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Setup(bot))
