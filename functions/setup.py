@@ -30,8 +30,8 @@ class Setup(commands.Cog):
     async def add_override(self, guild):  
         existing_role = discord.utils.get(guild.roles, name=self.override_role)
         if not existing_role:
-            await guild.create_role(name=self.override_role, reason="Role created by bot command")
-        return f"Override role created: {self.override_role}"
+            await guild.create_role(name=self.override_role, reason="✅ Role created by bot command")
+        return f"✅ Override role created: {self.override_role}"
     
     async def add_channels(self, guild):
         category_name = self.category_name
@@ -47,7 +47,7 @@ class Setup(commands.Cog):
         registrations_channel = discord.utils.get(category.channels, name='registrations')
         if not registrations_channel:
             await guild.create_text_channel('registrations', category=category)
-        return "Channels created or verified."
+        return "✅ Channels created"
 
 
     def update_channels_roles(self, server_id, column, role):
@@ -91,9 +91,9 @@ class Setup(commands.Cog):
             self.cursor.execute(update_sql, server_data)
             self.conn.commit()
             if subscriber == "" or tier_1 == "" or tier_2 == "" or tier_3 == "":
-                return "Integration roles are not the default, Please run /roles to select roles."
+                return "🚨 Twitch Integration roles are not the default, Please run /roles to select roles."
             else:
-                return "Integration roles set to default."
+                return "✅ We've detected the roles as the default roles that Twitch creates"
         except Exception as e:
             self.conn.rollback()
             return "An error occurred saving roles."
@@ -124,10 +124,10 @@ class Setup(commands.Cog):
                 insert_query = "INSERT INTO channels_roles (server_id, server_roles, server_channels) VALUES (%s, %s, %s)"
                 self.cursor.execute(insert_query, (server_id, "[]", "[]"))
                 self.conn.commit()
-            print("Server data successfully added to the database.")
+            print("✅ Server data successfully added to MCSync.")
             return new_minecraft_token
         except Exception as e:
-            print(f"An Server add error occurred: {e}")
+            print(f"🚨 An error occurred: {e}")
             self.conn.rollback()
 
         #await interaction.followup.send(f"{await self.add_channels(interaction.guild)}", ephemeral=True)
@@ -136,16 +136,16 @@ class Setup(commands.Cog):
     async def setup(self, interaction: discord.Interaction):
         # Initial response embed
         embed = discord.Embed(
-            title="Server Setup Complete",
+            title="Server Setup Completed",
             description="Your server has been set up with the following settings:",
-            color=discord.Color.blurple()
+            color=discord.Color.green()
         )
         # Gather setup information
         server_token = await self.add_server(interaction.guild)
         override_status = await self.add_override(interaction.guild)
         channels_roles_status = await self.add_channels_roles(interaction.guild)
         # Append each step's result as a field
-        embed.add_field(name="Server Token", value=f"`{server_token}`", inline=False)
+        embed.add_field(name="Server Token", value=f"||`{server_token}`|| ⬅️ Click to Show", inline=False)
         embed.add_field(name="Override Settings", value=override_status, inline=False)
         embed.add_field(name="Channels and Roles", value=channels_roles_status, inline=False)
         embed.set_footer(text="MCSync • Server Setup")

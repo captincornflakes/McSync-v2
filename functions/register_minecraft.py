@@ -38,15 +38,16 @@ class MinecraftNameCog(commands.Cog):
             if not minecraft_uuid:
                 return "Failed to register. The username is invalid."
             if not token:
-                return "Failed to register. The Discord server is not setup for MCSync."
+                return "Failed to register. MCSync has not been configured for this server yet!"
             self.cursor.execute('SELECT COUNT(*) FROM users WHERE discord_id = %s AND token = %s', (discord_id, token))
             exists = self.cursor.fetchone()[0]
+            print(exists)
             if exists:
-                message = "MCSync updated successfully."
+                message = f"{minecraft_name} updated successfully."
                 sql = "UPDATE users SET minecraft_name = %s, minecraft_uuid = %s, roles = %s WHERE discord_id = %s AND token = %s"
                 self.cursor.execute(sql, (minecraft_name, minecraft_uuid, roles_json, discord_id, token))
             else:
-                message = "User successfully added to MCSync."
+                message = f"{minecraft_name} successfully added to MCSync."
                 sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, created, lastcon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json, created, lastcon))
             self.conn.commit()
@@ -55,9 +56,9 @@ class MinecraftNameCog(commands.Cog):
         except Exception as e:
             print(f"An error occurred: {e}")
             self.conn.rollback()  
-            return "Registration failed due to a database error."
+            return "Registration failed, a database error occured."
 
-    @discord.app_commands.command(name="mcsync", description="Register a Minecraft name to the server.")
+    @discord.app_commands.command(name="mcsync", description="Register your Minecraft Username with MCSync to this server.")
     async def mcsync(self, interaction: discord.Interaction, minecraftname: str):
         result = await self.add_minecraft(interaction.guild, minecraftname, interaction.user)
         embed = discord.Embed(
