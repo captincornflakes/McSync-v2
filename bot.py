@@ -17,7 +17,7 @@ import shutil
 #pip install requests
 
 #use bot Github Sync
-syncGithub = False
+syncGithub = True
 
 # Enable logging
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
