@@ -16,63 +16,82 @@ import shutil
 #pip install discord.py
 #pip install requests
 
-#use bot Github Sync
-syncGithub = True
-
-# Enable logging
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 def download_repo_as_zip(repo_url, token, temp_folder):
     zip_url = f"{repo_url}/archive/refs/heads/main.zip"
     headers = {'Authorization': f'token {token}'}
-    response = requests.get(zip_url, headers=headers)
-    response.raise_for_status()  # Ensure we notice bad responses
-    with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
-        zip_file.extractall(temp_folder)
-        print(f"Extracted repository to {temp_folder}")
+    print(f"Downloading repository from {zip_url}...")
+    try:
+        response = requests.get(zip_url, headers=headers)
+        response.raise_for_status()  # Raise an error for HTTP errors
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to download repository: {e}")
+        raise
+    print(f"Extracting ZIP file to {temp_folder}...")
+    try:
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+            zip_file.extractall(temp_folder)
+    except zipfile.BadZipFile as e:
+        print(f"Failed to extract ZIP file: {e}")
+        raise
+    print(f"Repository extracted to {temp_folder}.")
 
 def extract_functions_folder(temp_folder, target_folder):
     repo_folder = os.path.join(temp_folder, "McSync-v2-main")
     functions_folder = os.path.join(repo_folder, "functions")
+    if not os.path.exists(functions_folder):
+        raise FileNotFoundError(f"'functions' folder not found in {repo_folder}.")
     if os.path.exists(target_folder):
+        print(f"Removing existing target folder: {target_folder}")
         shutil.rmtree(target_folder)
-        print(f"Removed existing target folder: {target_folder}")
+    print(f"Copying 'functions' folder to {target_folder}...")
     os.makedirs(target_folder, exist_ok=True)
     for item in os.listdir(functions_folder):
-        s = os.path.join(functions_folder, item)
-        d = os.path.join(target_folder, item)
-        if os.path.isdir(s):
-            shutil.copytree(s, d, False, None)
+        source = os.path.join(functions_folder, item)
+        destination = os.path.join(target_folder, item)
+        if os.path.isdir(source):
+            shutil.copytree(source, destination, dirs_exist_ok=True)
         else:
-            shutil.copy2(s, d)
+            shutil.copy2(source, destination)
 
-def load_config():
-    config_file = "datastores/config-dev.json"
-    fallback_config_file = "datastores/config-prod.json"
-    try:
-        with open(config_file, 'r') as f:
-            config = json.load(f)
-            print(f"Loaded configuration from {config_file}.")
-    except FileNotFoundError:
-        if(syncGithub):
-            print("Pulling from Github")
-            repo_url = "https://github.com/captincornflakes/McSync-v2"
-            token = "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" 
-            temp_folder = "repository_contents"
-            target_folder = "functions"
+def load_github():
+    sync_github = True
+    if sync_github:
+        print("Pulling repository from GitHub...")
+        repo_url = "https://github.com/captincornflakes/McSync-v2"
+        token = "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"  # Hardcoded token (NOT recommended for production)
+        temp_folder = "repository_contents"
+        target_folder = "functions"
+        try:
             download_repo_as_zip(repo_url, token, temp_folder)
             extract_functions_folder(temp_folder, target_folder)
-            shutil.rmtree(temp_folder)
+        finally:
+            if os.path.exists(temp_folder):
+                print(f"Cleaning up temporary folder: {temp_folder}")
+                shutil.rmtree(temp_folder)
+
+def load_config():
+    load_github()
+    dev_config_file = "datastores/config-dev.json"
+    prod_config_file = "datastores/config-prod.json"
+    config = None
+    try:
+        with open(dev_config_file, 'r') as f:
+            config = json.load(f)
+            print(f"Loaded configuration from {dev_config_file}.")
+    except FileNotFoundError:
+        print(f"{dev_config_file} not found. Trying {prod_config_file}...")
         try:
-            with open(fallback_config_file, 'r') as f:
+            with open(prod_config_file, 'r') as f:
                 config = json.load(f)
-                print(f"{config_file} not found. Loaded configuration from {fallback_config_file}.")
+                print(f"Loaded configuration from {prod_config_file}.")
         except FileNotFoundError:
-            print(f"Error: Neither {config_file} nor {fallback_config_file} could be found.")
+            print(f"Error: Neither {dev_config_file} nor {prod_config_file} could be found.")
             raise
     return config
-# Example usage
+
 config = load_config()
 
 # Define the intents you want your bot to have
