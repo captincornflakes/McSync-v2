@@ -16,6 +16,8 @@ import shutil
 #pip install discord.py
 #pip install requests
 
+#use bot Github Sync
+syncGithub = False
 
 # Enable logging
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
@@ -53,14 +55,15 @@ def load_config():
             config = json.load(f)
             print(f"Loaded configuration from {config_file}.")
     except FileNotFoundError:
-        print("Pulling from Github")
-        repo_url = "https://github.com/captincornflakes/McSync-v2"
-        token = "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" 
-        temp_folder = "repository_contents"
-        target_folder = "functions"
-        download_repo_as_zip(repo_url, token, temp_folder)
-        extract_functions_folder(temp_folder, target_folder)
-        shutil.rmtree(temp_folder)
+        if(syncGithub):
+            print("Pulling from Github")
+            repo_url = "https://github.com/captincornflakes/McSync-v2"
+            token = "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" 
+            temp_folder = "repository_contents"
+            target_folder = "functions"
+            download_repo_as_zip(repo_url, token, temp_folder)
+            extract_functions_folder(temp_folder, target_folder)
+            shutil.rmtree(temp_folder)
         try:
             with open(fallback_config_file, 'r') as f:
                 config = json.load(f)
