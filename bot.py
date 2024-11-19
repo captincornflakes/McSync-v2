@@ -115,7 +115,8 @@ db_connection = mysql.connector.connect(
     user=db_config['user'],
     password=db_config['password'],
     database=db_config['database'],
-    autocommit=True  # Enable autocommit to avoid stale connections
+    autocommit=True,  # Enable autocommit to avoid stale connections
+    connection_timeout=6000  # Set higher connection timeout
 )
 # Store the connection in the bot instance
 bot.db_connection = db_connection
