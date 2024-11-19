@@ -9,6 +9,12 @@ class MinecraftNameCog(commands.Cog):
         self.conn = bot.db_connection
         self.cursor = self.conn.cursor()
 
+    def reconnect_database(self):
+        try:
+            self.conn.ping(reconnect=True, attempts=3, delay=5)
+        except Exception as e:
+            print(f"Error reconnecting to the database: {e}")
+            
     async def get_uuid(self, minecraftname):
         url = f"https://api.mojang.com/users/profiles/minecraft/{minecraftname}"
         async with aiohttp.ClientSession() as session:
@@ -20,11 +26,13 @@ class MinecraftNameCog(commands.Cog):
                     return None
 
     async def get_server(self, server_id):
+        self.reconnect_database()
         self.cursor.execute('SELECT minecraft_token FROM servers WHERE server_id = %s', (server_id,))
         result = self.cursor.fetchone()
         return result[0] if result else None
     
     async def add_minecraft(self, guild, minecraftname, user):
+        self.reconnect_database()
         try:
             token = await self.get_server(guild.id)
             minecraft_name = minecraftname

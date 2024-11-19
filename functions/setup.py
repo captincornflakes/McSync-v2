@@ -17,7 +17,14 @@ class Setup(commands.Cog):
         self.tier_2 = bot.tier_2
         self.tier_3 = bot.tier_3
 
+    def reconnect_database(self):
+        try:
+            self.conn.ping(reconnect=True, attempts=3, delay=5)
+        except Exception as e:
+            print(f"Error reconnecting to the database: {e}")
+            
     def generate_random_token(self, length=32):
+        self.reconnect_database()
         """Generate a unique 32-character Minecraft token."""
         characters = string.ascii_letters + string.digits
         while True:
@@ -51,11 +58,13 @@ class Setup(commands.Cog):
 
 
     def update_channels_roles(self, server_id, column, role):
+        self.reconnect_database()
         query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
         self.cursor.execute(query, (role, server_id))
         self.conn.commit()
 
     async def add_channels_roles(self, guild):
+        self.reconnect_database()
         try:
             server_id = guild.id
             server_roles = []
@@ -99,6 +108,7 @@ class Setup(commands.Cog):
             return "An error occurred saving roles."
 
     async def add_server(self, guild):  
+        self.reconnect_database()
         try:
             server_id = guild.id
             server_name = guild.name

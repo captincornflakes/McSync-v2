@@ -10,7 +10,14 @@ class Listeners(commands.Cog):
         self.conn = bot.db_connection
         self.cursor = self.conn.cursor()
 
+    def reconnect_database(self):
+        try:
+            self.conn.ping(reconnect=True, attempts=3, delay=5)
+        except Exception as e:
+            print(f"Error reconnecting to the database: {e}")
+            
     def generate_random_token(self, length=32):
+        self.reconnect_database()
         characters = string.ascii_letters + string.digits
         while True:
             token = ''.join(secrets.choice(characters) for _ in range(length))
@@ -21,6 +28,7 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
+        self.reconnect_database()
         if before.roles != after.roles:
             roles = [{"name": role.name, "id": role.id} for role in after.roles if role.name != "@everyone"]
             roles_json = json.dumps(roles)  # Convert roles list to JSON string
@@ -41,6 +49,7 @@ class Listeners(commands.Cog):
     
     @commands.Cog.listener()
     async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
+        self.reconnect_database()
         if before.name != after.name:
             guild_id = before.guild.id
             query = "SELECT server_roles, subscriber_role, tier_1, tier_2, tier_3, override_role FROM channels_roles WHERE server_id = %s"
@@ -82,6 +91,7 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
+        self.reconnect_database()
         server_id = member.guild.id
         user_id = member.id
         self.cursor.execute("DELETE FROM users WHERE server_id = %s AND user_id = %s", (server_id, user_id))
@@ -90,6 +100,7 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild):
+        self.reconnect_database()
         try:
             server_id = guild.id
             self.cursor.execute("SELECT minecraft_token FROM servers WHERE server_id = %s", (server_id,))
@@ -107,6 +118,7 @@ class Listeners(commands.Cog):
    
     @commands.Cog.listener()
     async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
+        self.reconnect_database()
         try:
             server_id = after.id
             new_name = after.name
@@ -122,6 +134,7 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
+        self.reconnect_database()
         try:
             server_id = guild.id
             server_name = guild.name

@@ -12,7 +12,14 @@ class Roles(commands.Cog):
         self.tier_2 = bot.tier_2
         self.tier_3 = bot.tier_3
 
+    def reconnect_database(self):
+        try:
+            self.conn.ping(reconnect=True, attempts=3, delay=5)
+        except Exception as e:
+            print(f"Error reconnecting to the database: {e}")
+            
     def update_channels_roles(self, server_id, column, role):
+        self.reconnect_database()
         query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
         self.cursor.execute(query, (role, server_id))
         self.conn.commit()

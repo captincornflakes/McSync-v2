@@ -73,7 +73,6 @@ def load_github():
                 shutil.rmtree(temp_folder)
 
 def load_config():
-    load_github()
     dev_config_file = "datastores/config-dev.json"
     prod_config_file = "datastores/config-prod.json"
     config = None
@@ -82,6 +81,7 @@ def load_config():
             config = json.load(f)
             print(f"Loaded configuration from {dev_config_file}.")
     except FileNotFoundError:
+        load_github()
         print(f"{dev_config_file} not found. Trying {prod_config_file}...")
         try:
             with open(prod_config_file, 'r') as f:
@@ -114,7 +114,8 @@ db_connection = mysql.connector.connect(
     host=db_config['host'],
     user=db_config['user'],
     password=db_config['password'],
-    database=db_config['database']
+    database=db_config['database'],
+    autocommit=True  # Enable autocommit to avoid stale connections
 )
 # Store the connection in the bot instance
 bot.db_connection = db_connection

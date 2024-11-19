@@ -5,17 +5,24 @@ import secrets
 import string
 import os
 
-class TokenCog(commands.Cog):
+class GenerateTokenCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.conn = bot.db_connection  # Access the connection from the bot instance
         self.cursor = self.conn.cursor()
 
+    def reconnect_database(self):
+        try:
+            self.conn.ping(reconnect=True, attempts=3, delay=5)
+        except Exception as e:
+            print(f"Error reconnecting to the database: {e}")
+            
     def generate_random_token(self, length=32):
         characters = string.ascii_letters + string.digits
         return ''.join(secrets.choice(characters) for _ in range(length))
 
     async def update_json_and_database_with_token(self, guild):
+        self.reconnect_database()
         server_id = guild.id
         new_token = self.generate_random_token()
 
@@ -43,7 +50,7 @@ class TokenCog(commands.Cog):
             print(f"Database error occurred: {e}")
             return None
 
-    @discord.app_commands.command(name="token", description="Generates a new Minecraft token. Place this token in the plugins config folder.")
+    @discord.app_commands.command(name="generatetoken", description="Generates a new Minecraft token. Place this token in the plugins config folder.")
     @discord.app_commands.default_permissions(administrator=True)
     async def token(self, interaction: discord.Interaction):
         new_token = await self.update_json_and_database_with_token(interaction.guild)
@@ -70,4 +77,4 @@ class TokenCog(commands.Cog):
 
 # Setup function to add the cog to the bot
 async def setup(bot):
-    await bot.add_cog(TokenCog(bot))
+    await bot.add_cog(GenerateTokenCog(bot))
