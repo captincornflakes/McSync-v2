@@ -24,7 +24,7 @@ class ReactionRole(commands.Cog):
 
                if not result:
                     await interaction.followup.send(
-                         "No override role is defined for this server.", ephemeral=True
+                         "❌ No override role is defined for this server.", ephemeral=True
                     )
                     return
 
@@ -33,25 +33,25 @@ class ReactionRole(commands.Cog):
 
                if not role:
                     await interaction.followup.send(
-                         "The role defined for this server does not exist on the server.", ephemeral=True
+                         "❌ The role defined for this server does not exist on the server. 😲", ephemeral=True
                     )
                     return
 
-               embed = discord.Embed(title="MCSync React", color=discord.Color.blue())
+               embed = discord.Embed(title="MCSync Follower React", color=discord.Color.blue())
                embed.add_field(
-                    name="React to gain role",
-                    value=f"React with 👍 to gain the `{role.name}` role.",
+                    name="React to gain Follower Access",
+                    value=f"React to this message with 👍 to gain the `{role.name}` role.",
                )
-               embed.set_footer(text="React to this message to gain roles!")
+               embed.set_footer(text="⬇️ React below!")
                message = await interaction.channel.send(embed=embed)
                await message.add_reaction("👍")
                await interaction.followup.send(
-                    f"Embed created for role `{role.name}` in this server.", ephemeral=True
+                    f"✔️ Embed created for role `{role.name}` in this server.", ephemeral=True
                )
 
           except Exception as e:
                await interaction.followup.send(
-                    f"An error occurred: {e}", ephemeral=True
+                    f"❌ An error occurred: {e}", ephemeral=True
                )
 
      @commands.Cog.listener()
@@ -75,7 +75,7 @@ class ReactionRole(commands.Cog):
                     return
 
                embed = message.embeds[0]
-               if embed.title != "MCSync React":  # Check the embed title
+               if embed.title != "MCSync Follower React":  # Check the embed title
                     return
 
                with self.conn.cursor() as cursor:
@@ -99,10 +99,10 @@ class ReactionRole(commands.Cog):
                               await member.add_roles(role)
                          except discord.Forbidden:
                               print(
-                              f"Insufficient permissions to add role {role.name} to {member.name}."
+                              f"❌ Insufficient permissions to add role {role.name} to {member.name}."
                               )
           except Exception as e:
-               print(f"Error in on_raw_reaction_add: {e}")
+               print(f"❌ Error in on_raw_reaction_add: {e}")
 
 
      @commands.Cog.listener()
@@ -125,7 +125,7 @@ class ReactionRole(commands.Cog):
                     return
 
                embed = message.embeds[0]
-               if embed.title != "MCSync React":  # Check the embed title
+               if embed.title != "MCSync Follower React":  # Check the embed title
                     return
 
                with self.conn.cursor() as cursor:
@@ -149,10 +149,10 @@ class ReactionRole(commands.Cog):
                               await member.remove_roles(role)
                          except discord.Forbidden:
                               print(
-                              f"Insufficient permissions to remove role {role.name} from {member.name}."
+                              f"❌ Insufficient permissions to remove role {role.name} from {member.name}."
                               )
           except Exception as e:
-               print(f"Error in on_raw_reaction_remove: {e}")
+               print(f"❌ Error in on_raw_reaction_remove: {e}")
 
 
 
