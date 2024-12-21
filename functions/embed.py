@@ -1,0 +1,160 @@
+import discord
+from discord.ext import commands
+
+class ReactionRole(commands.Cog):
+     def __init__(self, bot):
+          self.bot = bot
+          self.conn = bot.db_connection
+
+     @discord.app_commands.command(
+          name="embed",
+          description="Create an embed for users to gain the override role by reacting."
+     )
+     @discord.app_commands.default_permissions(administrator=True)
+     async def embed(self, interaction: discord.Interaction):
+          await interaction.response.defer(ephemeral=True)
+
+          try:
+               with self.conn.cursor() as cursor:
+                    cursor.execute(
+                         "SELECT override_role FROM channels_roles WHERE server_id = %s",
+                         (interaction.guild.id,)
+                    )
+                    result = cursor.fetchone()
+
+               if not result:
+                    await interaction.followup.send(
+                         "❌ No override role is defined for this server.", ephemeral=True
+                    )
+                    return
+
+               override_role_name = result[0]
+               role = discord.utils.get(interaction.guild.roles, name=override_role_name)
+
+               if not role:
+                    await interaction.followup.send(
+                         "❌ The role defined for this server does not exist on the server. 😲", ephemeral=True
+                    )
+                    return
+
+               embed = discord.Embed(title="MCSync Follower React", color=discord.Color.blue())
+               embed.add_field(
+                    name="React to gain Follower Access",
+                    value=f"React to this message with 👍 to gain the `{role.name}` role.",
+               )
+               embed.set_footer(text="⬇️ React below!")
+               message = await interaction.channel.send(embed=embed)
+               await message.add_reaction("👍")
+               await interaction.followup.send(
+                    f"✔️ Embed created for role `{role.name}` in this server.", ephemeral=True
+               )
+
+          except Exception as e:
+               await interaction.followup.send(
+                    f"❌ An error occurred: {e}", ephemeral=True
+               )
+
+     @commands.Cog.listener()
+     @commands.Cog.listener()
+     async def on_raw_reaction_add(self, payload):
+          """Handle adding a reaction to the specific embed message."""
+          if payload.emoji.name != "👍":
+               return
+
+          try:
+               guild = self.bot.get_guild(payload.guild_id)
+               if not guild:
+                    return
+
+               channel = guild.get_channel(payload.channel_id)
+               if not channel:
+                    return
+
+               message = await channel.fetch_message(payload.message_id)
+               if not message.embeds:
+                    return
+
+               embed = message.embeds[0]
+               if embed.title != "MCSync Follower React":  # Check the embed title
+                    return
+
+               with self.conn.cursor() as cursor:
+                    cursor.execute(
+                         "SELECT override_role FROM channels_roles WHERE server_id = %s",
+                         (payload.guild_id,)
+                    )
+                    result = cursor.fetchone()
+
+               if result:
+                    override_role_name = result[0]
+                    role = discord.utils.get(guild.roles, name=override_role_name)
+                    member = guild.get_member(payload.user_id)
+
+                    # Fetch member if it's None (lazy loading issue)
+                    if not member:
+                         member = await guild.fetch_member(payload.user_id)
+
+                    if role and member:
+                         try:
+                              await member.add_roles(role)
+                         except discord.Forbidden:
+                              print(
+                              f"❌ Insufficient permissions to add role {role.name} to {member.name}."
+                              )
+          except Exception as e:
+               print(f"❌ Error in on_raw_reaction_add: {e}")
+
+
+     @commands.Cog.listener()
+     async def on_raw_reaction_remove(self, payload):
+          """Handle removing a reaction from the specific embed message."""
+          if payload.emoji.name != "👍":
+               return
+
+          try:
+               guild = self.bot.get_guild(payload.guild_id)
+               if not guild:
+                    return
+
+               channel = guild.get_channel(payload.channel_id)
+               if not channel:
+                    return
+
+               message = await channel.fetch_message(payload.message_id)
+               if not message.embeds:
+                    return
+
+               embed = message.embeds[0]
+               if embed.title != "MCSync Follower React":  # Check the embed title
+                    return
+
+               with self.conn.cursor() as cursor:
+                    cursor.execute(
+                         "SELECT override_role FROM channels_roles WHERE server_id = %s",
+                         (payload.guild_id,)
+                    )
+                    result = cursor.fetchone()
+
+               if result:
+                    override_role_name = result[0]
+                    role = discord.utils.get(guild.roles, name=override_role_name)
+                    member = guild.get_member(payload.user_id)
+
+                    # Fetch member if it's None (lazy loading issue)
+                    if not member:
+                         member = await guild.fetch_member(payload.user_id)
+
+                    if role and member:
+                         try:
+                              await member.remove_roles(role)
+                         except discord.Forbidden:
+                              print(
+                              f"❌ Insufficient permissions to remove role {role.name} from {member.name}."
+                              )
+          except Exception as e:
+               print(f"❌ Error in on_raw_reaction_remove: {e}")
+
+
+
+async def setup(bot):
+     await bot.add_cog(ReactionRole(bot))
