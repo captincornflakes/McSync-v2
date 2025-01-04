@@ -29,6 +29,7 @@ class Listeners(commands.Cog):
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         self.reconnect_database()
+        guild_id = before.guild.id
         if before.roles != after.roles:
             roles = [{"name": role.name, "id": role.id} for role in after.roles if role.name != "@everyone"]
             roles_json = json.dumps(roles)  # Convert roles list to JSON string
@@ -43,7 +44,7 @@ class Listeners(commands.Cog):
             try:
                 self.cursor.execute(query_name, (after.name, after.id))
                 
-                print(f"Member update - User: {after.name}")
+                print(f"Member update - Server: {guild_id} User: {after.name} Roles: {roles_json}")
                 self.conn.commit()
             except Exception as e:
                 print(f"Failed to update Discord name in the database: {e}")
@@ -68,18 +69,23 @@ class Listeners(commands.Cog):
                         break
                 if subscriber_role == before.name:
                     subscriber_role = after.name
+                    print(f"Server with ID {guild_id} updated subscriber role to {subscriber_role}.")
                     updated = True
                 if tier_1 == before.name:
                     tier_1 = after.name
+                    print(f"Server with ID {guild_id} updated tier_1 role to {tier_1}.")
                     updated = True
                 if tier_2 == before.name:
                     tier_2 = after.name
+                    print(f"Server with ID {guild_id} updated tier_2 role to {tier_2}.")
                     updated = True
                 if tier_3 == before.name:
                     tier_3 = after.name
+                    print(f"Server with ID {guild_id} updated tier_3 role to {tier_3}.")
                     updated = True
                 if override_role == before.name:
                     override_role = after.name
+                    print(f"Server with ID {guild_id} updated override_role role to {override_role}.")
                     updated = True
                 if updated:
                     updated_server_roles = json.dumps(server_roles)
@@ -118,7 +124,7 @@ class Listeners(commands.Cog):
             print(f"Server with ID {server_id} has been removed from the database.")
         except Exception as e:
             print(f"Error removing server with ID {server_id} from the database: {e}")
-   
+
     @commands.Cog.listener()
     async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
         self.reconnect_database()
