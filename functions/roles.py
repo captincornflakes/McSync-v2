@@ -20,7 +20,7 @@ class Roles(commands.Cog):
             
     def update_channels_roles(self, server_id, column, role):
         self.reconnect_database()
-        print(f"Final Update Rle - server: {server_id} Role: {role}")
+        print(f"Final Update Role - server: {server_id} Role: {role}")
         query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
         self.cursor.execute(query, (role, server_id))
         self.conn.commit()
@@ -28,7 +28,7 @@ class Roles(commands.Cog):
     async def update_subscriber_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.subscriber
-        print(f"server: {server_id} Role: {role_name}")
+        print(f"Subscriber update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber' role already exists: {role.mention}", ephemeral=True)
@@ -61,7 +61,7 @@ class Roles(commands.Cog):
     async def update_tier_1_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.tier_1
-        print(f"server: {server_id} Role: {role_name}")
+        print(f"tier 1 role update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber: Tier 1' role already exists: {role.mention}", ephemeral=True)
@@ -94,7 +94,7 @@ class Roles(commands.Cog):
     async def update_tier_2_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.tier_2
-        print(f"server: {server_id} Role: {role_name}")
+        print(f"Tier 2 role update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber: Tier 2' role already exists: {role.mention}", ephemeral=True)
@@ -127,7 +127,7 @@ class Roles(commands.Cog):
     async def update_tier_3_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.tier_3
-        print(f"server: {server_id} Role: {role_name}")
+        print(f"Tier 3 role update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber: Tier 3' role already exists: {role.mention}", ephemeral=True)

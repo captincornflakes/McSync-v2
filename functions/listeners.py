@@ -42,6 +42,8 @@ class Listeners(commands.Cog):
             query_name = "UPDATE users SET discord_name = %s WHERE discord_id = %s"
             try:
                 self.cursor.execute(query_name, (after.name, after.id))
+                
+                print(f"Member update - User: {after.name}")
                 self.conn.commit()
             except Exception as e:
                 print(f"Failed to update Discord name in the database: {e}")
@@ -95,6 +97,7 @@ class Listeners(commands.Cog):
         server_id = member.guild.id
         user_id = member.id
         self.cursor.execute("DELETE FROM users WHERE server_id = %s AND user_id = %s", (server_id, user_id))
+        print(f"Member Deleted: {server_id} User: {user_id}")
         self.conn.commit()
         print(f"User {member.name} (ID: {user_id}) removed from server {server_id}.")
 
