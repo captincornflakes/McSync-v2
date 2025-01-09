@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from bot import datalog
+
 class TokenCog(commands.Cog):
      def __init__(self, bot):
           self.bot = bot
@@ -23,7 +25,7 @@ class TokenCog(commands.Cog):
                result = self.cursor.fetchone()
                return result[0] if result else None  # Return the token if found, otherwise None
           except Exception as e:
-               print(f"Database error occurred while retrieving the token: {e}")
+               datalog(self, 'embed', f"Database error occurred while retrieving the token: {e} - {server_id}")
                return None
 
      @discord.app_commands.command(name="token", description="Retrieves the Minecraft token for the server.")

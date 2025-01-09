@@ -11,6 +11,7 @@ import zipfile
 import io
 import os
 import shutil
+from datetime import datetime, timezone
 
 #pip install mysql-connector-python
 #pip install discord.py
@@ -153,6 +154,15 @@ async def on_ready():
     
     for shard_id, latency in bot.latencies:
         print(f"Shard ID: {shard_id} | Latency: {latency*1000:.2f}ms")
+
+
+def datalog(self, type, string):
+    time = datetime.now().strftime("%m-%d-%Y %I:%M:%S %p")
+    insert_sql = "INSERT INTO logs(time, type, content) VALUES (%s, %s, %s)"
+    server_data = (time, type, string)
+    self.cursor.execute(insert_sql, server_data)
+    self.conn.commit()
+    return True
 
 # Event: Sync commands when bot joins a new guild
 @bot.event

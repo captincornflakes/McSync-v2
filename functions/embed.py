@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from bot import datalog
+
 class ReactionRole(commands.Cog):
      def __init__(self, bot):
           self.bot = bot
@@ -98,11 +100,9 @@ class ReactionRole(commands.Cog):
                          try:
                               await member.add_roles(role)
                          except discord.Forbidden:
-                              print(
-                              f"❌ Insufficient permissions to add role {role.name} to {member.name}."
-                              )
+                              datalog(self, 'roles', f"❌ Insufficient permissions to add role {role.name} to {member.name}. {guild}")
           except Exception as e:
-               print(f"❌ Error in on_raw_reaction_add: {e}")
+               datalog(self, 'embed', f"❌ Error in on_raw_reaction_add: {e} - {guild}")
 
 
      @commands.Cog.listener()
@@ -148,11 +148,9 @@ class ReactionRole(commands.Cog):
                          try:
                               await member.remove_roles(role)
                          except discord.Forbidden:
-                              print(
-                              f"❌ Insufficient permissions to remove role {role.name} from {member.name}."
-                              )
+                              datalog(self, 'embed', f"❌ Insufficient permissions to remove role {role.name} from {member.name}. {guild}")
           except Exception as e:
-               print(f"❌ Error in on_raw_reaction_remove: {e}")
+               datalog(self, 'embed', f"❌ Error in on_raw_reaction_remove: {e} - {guild}")
 
 
 

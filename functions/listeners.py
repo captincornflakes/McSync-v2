@@ -4,6 +4,8 @@ import json
 import secrets
 import string
 
+from bot import datalog
+
 class Listeners(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -38,16 +40,15 @@ class Listeners(commands.Cog):
                 self.cursor.execute(query, (roles_json, after.id))
                 self.conn.commit()
             except Exception as e:
-                print(f"Failed to update roles in the database: {e}")
+                datalog(self, 'Listener', f"Failed to update roles in the database: {e}")
                 self.conn.rollback()
             query_name = "UPDATE users SET discord_name = %s WHERE discord_id = %s"
             try:
                 self.cursor.execute(query_name, (after.name, after.id))
-                
-                print(f"Member update - Server: {guild_id} User: {after.name} Roles: {roles_json}")
+                datalog(self, 'Listener', f"Member update - Server: {guild_id} User: {after.name} Roles: {roles_json}")
                 self.conn.commit()
             except Exception as e:
-                print(f"Failed to update Discord name in the database: {e}")
+                datalog(self, 'Listener', f"Failed to update Discord name in the database: {e}")
                 self.conn.rollback()
     
     @commands.Cog.listener()
@@ -69,23 +70,23 @@ class Listeners(commands.Cog):
                         break
                 if subscriber_role == before.name:
                     subscriber_role = after.name
-                    print(f"Server with ID {guild_id} updated subscriber role to {subscriber_role}.")
+                    datalog(self, 'Listener', f"Server with ID {guild_id} updated subscriber role to {subscriber_role}.")   
                     updated = True
                 if tier_1 == before.name:
                     tier_1 = after.name
-                    print(f"Server with ID {guild_id} updated tier_1 role to {tier_1}.")
+                    datalog(self, 'Listener', f"Server with ID {guild_id} updated tier_1 role to {tier_1}.")   
                     updated = True
                 if tier_2 == before.name:
                     tier_2 = after.name
-                    print(f"Server with ID {guild_id} updated tier_2 role to {tier_2}.")
+                    datalog(self, 'Listener', f"Server with ID {guild_id} updated tier_2 role to {tier_2}.")   
                     updated = True
                 if tier_3 == before.name:
                     tier_3 = after.name
-                    print(f"Server with ID {guild_id} updated tier_3 role to {tier_3}.")
+                    datalog(self, 'Listener', f"Server with ID {guild_id} updated tier_3 role to {tier_3}.")   
                     updated = True
                 if override_role == before.name:
                     override_role = after.name
-                    print(f"Server with ID {guild_id} updated override_role role to {override_role}.")
+                    datalog(self, 'Listener', f"Server with ID {guild_id} updated override_role role to {override_role}.")   
                     updated = True
                 if updated:
                     updated_server_roles = json.dumps(server_roles)
@@ -94,7 +95,7 @@ class Listeners(commands.Cog):
                         self.cursor.execute(update_query, (updated_server_roles, subscriber_role, tier_1, tier_2, tier_3, override_role, guild_id))
                         self.conn.commit()
                     except Exception as e:
-                        print(f"Failed to update server roles or tier roles in the database: {e}")
+                        datalog(self, 'Listener', f"Failed to update server roles or tier roles in the database: {e}")
                         self.conn.rollback()
 
     @commands.Cog.listener()
@@ -103,9 +104,9 @@ class Listeners(commands.Cog):
         server_id = member.guild.id
         user_id = member.id
         self.cursor.execute("DELETE FROM users WHERE server_id = %s AND user_id = %s", (server_id, user_id))
-        print(f"Member Deleted: {server_id} User: {user_id}")
+        datalog(self, 'Listener', f"Member Deleted: {server_id} User: {user_id}")
         self.conn.commit()
-        print(f"User {member.name} (ID: {user_id}) removed from server {server_id}.")
+        datalog(self, 'Listener', f"User {member.name} (ID: {user_id}) removed from server {server_id}.")
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild):
@@ -118,12 +119,13 @@ class Listeners(commands.Cog):
                 token = result[0]
                 self.cursor.execute("DELETE FROM users WHERE token = %s", (token,))
                 self.cursor.execute("DELETE FROM channels_roles WHERE server_id = %s", (server_id,))
-                print(f"Users with token {token} have been removed from the database.")
+                datalog(self, 'Listener', f"Users with token {token} have been removed from the database.")
             self.cursor.execute("DELETE FROM servers WHERE server_id = %s", (server_id,))
             self.conn.commit()
-            print(f"Server with ID {server_id} has been removed from the database.")
+            datalog(self, 'Listener', f"Server with ID {server_id} has been removed from the database.")
         except Exception as e:
-            print(f"Error removing server with ID {server_id} from the database: {e}")
+            datalog(self, 'Listener', f"Error removing server with ID {server_id} from the database: {e}")
+            print()
 
     @commands.Cog.listener()
     async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
@@ -136,9 +138,9 @@ class Listeners(commands.Cog):
             update_data = (new_name, new_owner_id, server_id)
             self.cursor.execute(update_sql, update_data)
             self.conn.commit()
-            print(f"Updated server information for ID {server_id}.")
+            datalog(self, 'Listener', f"Updated server information for ID {server_id}.")
         except Exception as e:
-            print(f"Error updating server information for ID {server_id}: {e}")
+            datalog(self, 'Listener', f"Error updating server information for ID {server_id}: {e}")
             self.conn.rollback()
 
     @commands.Cog.listener()
@@ -153,9 +155,9 @@ class Listeners(commands.Cog):
             server_data = (server_id, server_name, minecraft_token, owner)
             self.cursor.execute(insert_sql, server_data)
             self.conn.commit()
-            print(f"Server '{server_name}' (ID: {server_id}) has been added to the database.")
+            datalog(self, 'Listener', f"Server '{server_name}' (ID: {server_id}) has been added to the database.")
         except Exception as e:
-            print(f"Error adding server '{server_name}' (ID: {server_id}) to the database: {e}")
+            datalog(self, 'Listener', f"Error adding server '{server_name}' (ID: {server_id}) to the database: {e}")
 
 async def setup(bot):
     await bot.add_cog(Listeners(bot))

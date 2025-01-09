@@ -2,7 +2,9 @@ import discord
 from discord.ext import commands
 import aiohttp
 import json
+from bot import datalog
 
+    
 class MinecraftNameCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -31,6 +33,7 @@ class MinecraftNameCog(commands.Cog):
         result = self.cursor.fetchone()
         return result[0] if result else None
     
+    
     async def add_minecraft(self, guild, minecraftname, user):
         self.reconnect_database()
         try:
@@ -49,7 +52,6 @@ class MinecraftNameCog(commands.Cog):
                 return "Failed to register. MCSync has not been configured for this server yet!"
             self.cursor.execute('SELECT COUNT(*) FROM users WHERE discord_id = %s AND token = %s', (discord_id, token))
             exists = self.cursor.fetchone()[0]
-            print(exists)
             if exists:
                 message = f"{minecraft_name} updated successfully."
                 sql = "UPDATE users SET minecraft_name = %s, minecraft_uuid = %s, roles = %s WHERE discord_id = %s AND token = %s"
@@ -59,9 +61,10 @@ class MinecraftNameCog(commands.Cog):
                 sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, created, lastcon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
                 self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json, created, lastcon))
             self.conn.commit()
-            print(message)
+            datalog(self, 'register', message)
             return message
         except Exception as e:
+            datalog(self, 'register', f"An error occurred: {e}")
             print(f"An error occurred: {e}")
             self.conn.rollback()  
             return "Registration failed, a database error occured."

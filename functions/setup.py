@@ -5,6 +5,8 @@ from discord import app_commands
 import string
 import secrets
 
+from bot import datalog
+
 class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -134,10 +136,10 @@ class Setup(commands.Cog):
                 insert_query = "INSERT INTO channels_roles (server_id, server_roles, server_channels) VALUES (%s, %s, %s)"
                 self.cursor.execute(insert_query, (server_id, "[]", "[]"))
                 self.conn.commit()
-            print("✅ Server data successfully added to MCSync.")
+            datalog(self, 'setup', f"✅ Server data successfully added to MCSync. {server_id}")
             return new_minecraft_token
         except Exception as e:
-            print(f"🚨 An error occurred: {e}")
+            datalog(self, 'setup', f"🚨 An error occurred: {e} - {server_id}")
             self.conn.rollback()
 
         #await interaction.followup.send(f"{await self.add_channels(interaction.guild)}", ephemeral=True)
