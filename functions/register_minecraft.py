@@ -2,8 +2,9 @@ import discord
 from discord.ext import commands
 import aiohttp
 import json
-from bot import datalog
 
+import requests
+from bot import datalog
     
 class MinecraftNameCog(commands.Cog):
     def __init__(self, bot):
@@ -18,14 +19,26 @@ class MinecraftNameCog(commands.Cog):
             print(f"Error reconnecting to the database: {e}")
             
     async def get_uuid(self, minecraftname):
-        url = f"https://api.mojang.com/users/profiles/minecraft/{minecraftname}"
+        
+        
+        url_main = f"https://api.mojang.com/users/profiles/minecraft/{minecraftname}"
+        url_fallback = f"https://api.ashcon.app/mojang/v2/user/{minecraftname}"
+        
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
+            # Try the main URL
+            async with session.get(url_main) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data['id'] 
-                else:
-                    return None
+                    print(data)
+                    return data['id']
+            # If the main URL fails, try the fallback URL
+            async with session.get(url_fallback) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print(data['uuid'].replace('-', ''))
+                    return data['uuid'].replace('-', '')
+        # If both fail, return None
+        return None
 
     async def get_server(self, server_id):
         self.reconnect_database()
