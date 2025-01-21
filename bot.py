@@ -16,7 +16,8 @@ from datetime import datetime, timezone
 #pip install mysql-connector-python
 #pip install discord.py
 #pip install requests
-#python -m pip install mojang
+#pip install aiohttp
+
 
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 logging.basicConfig(level=logging.INFO, handlers=[handler])
