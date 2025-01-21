@@ -18,9 +18,9 @@ class StatusCog(commands.Cog):
     async def start_webserver(self):
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        self.site = web.TCPSite(self.runner, 'localhost', 5045)  # Replace with your desired host/port
+        self.site = web.TCPSite(self.runner, '0.0.0.0', 5045)  # Replace with your desired host/port
         await self.site.start()
-        print("Webserver started on http://localhost:5045/status")
+        print("Webserver started on http://0.0.0.0:5045/status")
 
     async def handle_status(self, request):
         """Handle GET requests to /status"""
