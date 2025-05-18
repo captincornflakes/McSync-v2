@@ -1,12 +1,18 @@
 import discord
 from discord.ext import commands
 
-from bot import datalog
+from utils.logger_utils import datalog
+from utils.database_utils import reconnect_database  # <-- Add this import
 
 class ReactionRole(commands.Cog):
      def __init__(self, bot):
           self.bot = bot
           self.conn = bot.db_connection
+
+     def fetch_one(self, sql, params):
+          with self.conn.cursor() as cursor:
+               cursor.execute(sql, params)
+               return cursor.fetchone()
 
      @discord.app_commands.command(
           name="embed",
@@ -15,15 +21,11 @@ class ReactionRole(commands.Cog):
      @discord.app_commands.default_permissions(administrator=True)
      async def embed(self, interaction: discord.Interaction):
           await interaction.response.defer(ephemeral=True)
-
           try:
-               with self.conn.cursor() as cursor:
-                    cursor.execute(
-                         "SELECT override_role FROM channels_roles WHERE server_id = %s",
-                         (interaction.guild.id,)
-                    )
-                    result = cursor.fetchone()
-
+               result = self.fetch_one(
+                    "SELECT override_role FROM channels_roles WHERE server_id = %s",
+                    (interaction.guild.id,)
+               )
                if not result:
                     await interaction.followup.send(
                          "❌ No override role is defined for this server.", ephemeral=True
@@ -57,45 +59,33 @@ class ReactionRole(commands.Cog):
                )
 
      @commands.Cog.listener()
-     @commands.Cog.listener()
      async def on_raw_reaction_add(self, payload):
-          """Handle adding a reaction to the specific embed message."""
           if payload.emoji.name != "👍":
                return
-
           try:
                guild = self.bot.get_guild(payload.guild_id)
                if not guild:
                     return
-
                channel = guild.get_channel(payload.channel_id)
                if not channel:
                     return
-
                message = await channel.fetch_message(payload.message_id)
                if not message.embeds:
                     return
-
                embed = message.embeds[0]
-               if embed.title != "MCSync Follower React":  # Check the embed title
+               if embed.title != "MCSync Follower React":
                     return
 
-               with self.conn.cursor() as cursor:
-                    cursor.execute(
-                         "SELECT override_role FROM channels_roles WHERE server_id = %s",
-                         (payload.guild_id,)
-                    )
-                    result = cursor.fetchone()
-
+               result = self.fetch_one(
+                    "SELECT override_role FROM channels_roles WHERE server_id = %s",
+                    (payload.guild_id,)
+               )
                if result:
                     override_role_name = result[0]
                     role = discord.utils.get(guild.roles, name=override_role_name)
                     member = guild.get_member(payload.user_id)
-
-                    # Fetch member if it's None (lazy loading issue)
                     if not member:
                          member = await guild.fetch_member(payload.user_id)
-
                     if role and member:
                          try:
                               await member.add_roles(role)
@@ -104,46 +94,34 @@ class ReactionRole(commands.Cog):
           except Exception as e:
                datalog(self, 'embed', f"❌ Error in on_raw_reaction_add: {e} - {guild}")
 
-
      @commands.Cog.listener()
      async def on_raw_reaction_remove(self, payload):
-          """Handle removing a reaction from the specific embed message."""
           if payload.emoji.name != "👍":
                return
-
           try:
                guild = self.bot.get_guild(payload.guild_id)
                if not guild:
                     return
-
                channel = guild.get_channel(payload.channel_id)
                if not channel:
                     return
-
                message = await channel.fetch_message(payload.message_id)
                if not message.embeds:
                     return
-
                embed = message.embeds[0]
-               if embed.title != "MCSync Follower React":  # Check the embed title
+               if embed.title != "MCSync Follower React":
                     return
 
-               with self.conn.cursor() as cursor:
-                    cursor.execute(
-                         "SELECT override_role FROM channels_roles WHERE server_id = %s",
-                         (payload.guild_id,)
-                    )
-                    result = cursor.fetchone()
-
+               result = self.fetch_one(
+                    "SELECT override_role FROM channels_roles WHERE server_id = %s",
+                    (payload.guild_id,)
+               )
                if result:
                     override_role_name = result[0]
                     role = discord.utils.get(guild.roles, name=override_role_name)
                     member = guild.get_member(payload.user_id)
-
-                    # Fetch member if it's None (lazy loading issue)
                     if not member:
                          member = await guild.fetch_member(payload.user_id)
-
                     if role and member:
                          try:
                               await member.remove_roles(role)

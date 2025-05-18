@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from bot import datalog
+from utils.logger_utils import datalog
+from utils.database_utils import reconnect_database  # <-- Add this import
 
 class Roles(commands.Cog):
     def __init__(self, bot):
@@ -13,15 +14,9 @@ class Roles(commands.Cog):
         self.tier_1 = bot.tier_1
         self.tier_2 = bot.tier_2
         self.tier_3 = bot.tier_3
-
-    def reconnect_database(self):
-        try:
-            self.conn.ping(reconnect=True, attempts=3, delay=5)
-        except Exception as e:
-            print(f"Error reconnecting to the database: {e}")
             
     def update_channels_roles(self, server_id, column, role):
-        self.reconnect_database()
+        reconnect_database(self.conn)
         datalog(self, 'roles', f"Final Update Role - server: {server_id} Role: {role}")
         query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
         self.cursor.execute(query, (role, server_id))

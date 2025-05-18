@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from bot import datalog
+from utils.logger_utils import datalog
 
 class TokenCog(commands.Cog):
      def __init__(self, bot):

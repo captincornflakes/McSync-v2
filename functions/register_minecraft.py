@@ -4,7 +4,8 @@ import aiohttp
 import json
 
 import requests
-from bot import datalog
+from utils.logger_utils import datalog
+from utils.database_utils import reconnect_database  # <-- Add this import
     
 class MinecraftNameCog(commands.Cog):
     def __init__(self, bot):
@@ -12,18 +13,10 @@ class MinecraftNameCog(commands.Cog):
         self.conn = bot.db_connection
         self.cursor = self.conn.cursor()
 
-    def reconnect_database(self):
-        try:
-            self.conn.ping(reconnect=True, attempts=3, delay=5)
-        except Exception as e:
-            print(f"Error reconnecting to the database: {e}")
-            
+    
     async def get_uuid(self, minecraftname):
-        
-        
         url_main = f"https://api.mojang.com/users/profiles/minecraft/{minecraftname}"
         url_fallback = f"https://api.ashcon.app/mojang/v2/user/{minecraftname}"
-        
         async with aiohttp.ClientSession() as session:
             # Try the main URL
             async with session.get(url_main) as response:
@@ -41,14 +34,15 @@ class MinecraftNameCog(commands.Cog):
         return None
 
     async def get_server(self, server_id):
-        self.reconnect_database()
-        self.cursor.execute('SELECT minecraft_token FROM servers WHERE server_id = %s', (server_id,))
-        result = self.cursor.fetchone()
+        reconnect_database(self.conn)
+        with self.conn.cursor() as cursor:
+            cursor.execute('SELECT minecraft_token FROM servers WHERE server_id = %s', (server_id,))
+            result = cursor.fetchone()
         return result[0] if result else None
     
     
     async def add_minecraft(self, guild, minecraftname, user):
-        self.reconnect_database()
+        reconnect_database(self.conn)
         try:
             token = await self.get_server(guild.id)
             minecraft_name = minecraftname
@@ -63,17 +57,18 @@ class MinecraftNameCog(commands.Cog):
                 return "Failed to register. The username is invalid."
             if not token:
                 return "Failed to register. MCSync has not been configured for this server yet!"
-            self.cursor.execute('SELECT COUNT(*) FROM users WHERE discord_id = %s AND token = %s', (discord_id, token))
-            exists = self.cursor.fetchone()[0]
-            if exists:
-                message = f"{minecraft_name} updated successfully."
-                sql = "UPDATE users SET minecraft_name = %s, minecraft_uuid = %s, roles = %s WHERE discord_id = %s AND token = %s"
-                self.cursor.execute(sql, (minecraft_name, minecraft_uuid, roles_json, discord_id, token))
-            else:
-                message = f"{minecraft_name} successfully added to MCSync."
-                sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, created, lastcon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-                self.cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json, created, lastcon))
-            self.conn.commit()
+            with self.conn.cursor() as cursor:
+                cursor.execute('SELECT COUNT(*) FROM users WHERE discord_id = %s AND token = %s', (discord_id, token))
+                exists = cursor.fetchone()[0]
+                if exists:
+                    message = f"{minecraft_name} updated successfully."
+                    sql = "UPDATE users SET minecraft_name = %s, minecraft_uuid = %s, roles = %s WHERE discord_id = %s AND token = %s"
+                    cursor.execute(sql, (minecraft_name, minecraft_uuid, roles_json, discord_id, token))
+                else:
+                    message = f"{minecraft_name} successfully added to MCSync."
+                    sql = "INSERT INTO users (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles, created, lastcon) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(sql, (token, minecraft_name, minecraft_uuid, discord_name, discord_id, roles_json, created, lastcon))
+                self.conn.commit()
             datalog(self, 'register', message)
             return message
         except Exception as e:
