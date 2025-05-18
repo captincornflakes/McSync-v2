@@ -3,7 +3,6 @@ from discord.ext import commands
 import os
 import tracemalloc
 import logging
-from datetime import datetime
 from utils.github_utils import load_github
 from utils.database_utils import setup_database_connection
 from utils.config_utils import load_config
@@ -25,7 +24,9 @@ bot = commands.AutoShardedBot(
     command_prefix="!",
     intents=intents,
     application_id=int(config['application_id']),
-    help_command=None
+    help_command=None,
+    # shard_count=2,  # Uncomment and set if you want to specify the number of shards
+    # shard_ids=[0, 1],  # Uncomment and set if you want to specify which shards this instance runs
 )
 bot.config = config
 bot.db_connection = setup_database_connection(config)
@@ -53,11 +54,14 @@ async def load_extensions_from_folder(folder):
 async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.playing, name="MCSync.live")
     await bot.change_presence(status=discord.Status.online, activity=activity)
-    print(f'Logged in as {bot.user.name} ({bot.user.id})')
-    print(f"Shard ID: {bot.shard_id}")
-    print(f"Total Shards: {bot.shard_count}")
+    print(f'Logged in as {bot.user} ({bot.user.id})')
+    print(f"Shard Count: {bot.shard_count}")
     for shard_id, latency in bot.latencies:
         print(f"Shard ID: {shard_id} | Latency: {latency*1000:.2f}ms")
+
+@bot.event
+async def on_shard_ready(shard_id):
+    print(f"Shard {shard_id} is ready.")
 
 @bot.event
 async def on_guild_join(guild):
