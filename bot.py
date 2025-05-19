@@ -3,8 +3,9 @@ from discord.ext import commands
 import os
 import tracemalloc
 import logging
+import asyncio
 from utils.github_utils import load_github
-from utils.database_utils import setup_database_connection
+from utils.database_utils import setup_database_connection, get_active_connection_count
 from utils.config_utils import load_config
 
 # Logging setup
@@ -34,6 +35,8 @@ bot.subscriber = "Twitch Subscriber"
 bot.tier_1 = "Twitch Subscriber: Tier 1"
 bot.tier_2 = "Twitch Subscriber: Tier 2"
 bot.tier_3 = "Twitch Subscriber: Tier 3"
+bot.override_role = "MCSync Override"
+bot.category_name = "MCSync"
 
 # Start memory tracking
 tracemalloc.start()
@@ -50,6 +53,14 @@ async def load_extensions_from_folder(folder):
             except Exception as e:
                 print(f'Failed to load extension {module_path}. Reason: {e}')
 
+async def check_active_connections():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        if bot.db_connection:
+            count = get_active_connection_count(bot.db_connection)
+            print(f"[DB] Active connections: {count}")
+        await asyncio.sleep(300)  # 5 minutes
+
 @bot.event
 async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.playing, name="MCSync.live")
@@ -58,6 +69,9 @@ async def on_ready():
     print(f"Shard Count: {bot.shard_count}")
     for shard_id, latency in bot.latencies:
         print(f"Shard ID: {shard_id} | Latency: {latency*1000:.2f}ms")
+    # Start the background task only once
+    if not hasattr(bot, "active_conn_task"):
+        bot.active_conn_task = asyncio.create_task(check_active_connections())
 
 @bot.event
 async def on_shard_ready(shard_id):

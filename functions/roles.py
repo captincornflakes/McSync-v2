@@ -3,29 +3,27 @@ from discord.ext import commands
 from discord import app_commands
 
 from utils.logger_utils import datalog
-from utils.database_utils import reconnect_database  # <-- Add this import
+from utils.database_utils import reconnect_database, db_update
 
 class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.conn = bot.db_connection  # Assuming the connection is passed from the bot
-        self.cursor = self.conn.cursor()
+        self.conn = bot.db_connection
         self.subscriber = bot.subscriber
         self.tier_1 = bot.tier_1
         self.tier_2 = bot.tier_2
         self.tier_3 = bot.tier_3
-            
+
     def update_channels_roles(self, server_id, column, role):
         reconnect_database(self.conn)
-        datalog(self, 'roles', f"Final Update Role - server: {server_id} Role: {role}")
+        datalog(self.conn, 'roles', f"Final Update Role - server: {server_id} Role: {role}")
         query = f"UPDATE channels_roles SET {column} = %s WHERE server_id = %s"
-        self.cursor.execute(query, (role, server_id))
-        self.conn.commit()
+        db_update(self.conn, query, (role, server_id))
 
     async def update_subscriber_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.subscriber
-        datalog(self, 'roles', f"Subscriber update - server: {server_id} Role: {role_name}")
+        datalog(self.conn, 'roles', f"Subscriber update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber' role already exists: {role.mention}", ephemeral=True)
@@ -58,7 +56,7 @@ class Roles(commands.Cog):
     async def update_tier_1_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.tier_1
-        datalog(self, 'roles', f"tier 1 role update - server: {server_id} Role: {role_name}")
+        datalog(self.conn, 'roles', f"tier 1 role update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber: Tier 1' role already exists: {role.mention}", ephemeral=True)
@@ -91,7 +89,7 @@ class Roles(commands.Cog):
     async def update_tier_2_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.tier_2
-        datalog(self, 'roles', f"Tier 2 role update - server: {server_id} Role: {role_name}")
+        datalog(self.conn, 'roles', f"Tier 2 role update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber: Tier 2' role already exists: {role.mention}", ephemeral=True)
@@ -124,7 +122,7 @@ class Roles(commands.Cog):
     async def update_tier_3_role(self, interaction: discord.Interaction):
         server_id = interaction.guild.id
         role_name = self.tier_3
-        datalog(self, 'roles', f"Tier 3 role update - server: {server_id} Role: {role_name}")
+        datalog(self.conn, 'roles', f"Tier 3 role update - server: {server_id} Role: {role_name}")
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if role:
             await interaction.followup.send(f"'Twitch Subscriber: Tier 3' role already exists: {role.mention}", ephemeral=True)
@@ -155,7 +153,7 @@ class Roles(commands.Cog):
     @app_commands.command(name="roles", description="Setup your server with MCSync roles.")
     @app_commands.default_permissions(administrator=True)
     async def roles(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)  # Defer the initial response to keep the interaction alive
+        await interaction.response.defer(ephemeral=True)
         await self.update_subscriber_role(interaction)
 
 async def setup(bot):

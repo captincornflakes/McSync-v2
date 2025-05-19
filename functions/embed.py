@@ -2,17 +2,12 @@ import discord
 from discord.ext import commands
 
 from utils.logger_utils import datalog
-from utils.database_utils import reconnect_database  # <-- Add this import
+from utils.database_utils import reconnect_database, db_get
 
 class ReactionRole(commands.Cog):
      def __init__(self, bot):
           self.bot = bot
           self.conn = bot.db_connection
-
-     def fetch_one(self, sql, params):
-          with self.conn.cursor() as cursor:
-               cursor.execute(sql, params)
-               return cursor.fetchone()
 
      @discord.app_commands.command(
           name="embed",
@@ -22,9 +17,11 @@ class ReactionRole(commands.Cog):
      async def embed(self, interaction: discord.Interaction):
           await interaction.response.defer(ephemeral=True)
           try:
-               result = self.fetch_one(
+               result = db_get(
+                    self.conn,
                     "SELECT override_role FROM channels_roles WHERE server_id = %s",
-                    (interaction.guild.id,)
+                    (interaction.guild.id,),
+                    fetchone=True
                )
                if not result:
                     await interaction.followup.send(
@@ -76,21 +73,28 @@ class ReactionRole(commands.Cog):
                if embed.title != "MCSync Follower React":
                     return
 
-               result = self.fetch_one(
+               result = db_get(
+                    self.conn,
                     "SELECT override_role FROM channels_roles WHERE server_id = %s",
-                    (payload.guild_id,)
+                    (payload.guild_id,),
+                    fetchone=True
                )
                if result:
                     override_role_name = result[0]
                     role = discord.utils.get(guild.roles, name=override_role_name)
                     member = guild.get_member(payload.user_id)
                     if not member:
-                         member = await guild.fetch_member(payload.user_id)
+                         try:
+                              member = await guild.fetch_member(payload.user_id)
+                         except Exception:
+                              return
                     if role and member:
                          try:
-                              await member.add_roles(role)
+                              await member.add_roles(role, reason="MCSync reaction role")
                          except discord.Forbidden:
                               datalog(self, 'roles', f"❌ Insufficient permissions to add role {role.name} to {member.name}. {guild}")
+                         except Exception as e:
+                              datalog(self, 'embed', f"❌ Error adding role: {e} - {guild}")
           except Exception as e:
                datalog(self, 'embed', f"❌ Error in on_raw_reaction_add: {e} - {guild}")
 
@@ -112,9 +116,11 @@ class ReactionRole(commands.Cog):
                if embed.title != "MCSync Follower React":
                     return
 
-               result = self.fetch_one(
+               result = db_get(
+                    self.conn,
                     "SELECT override_role FROM channels_roles WHERE server_id = %s",
-                    (payload.guild_id,)
+                    (payload.guild_id,),
+                    fetchone=True
                )
                if result:
                     override_role_name = result[0]
@@ -129,8 +135,6 @@ class ReactionRole(commands.Cog):
                               datalog(self, 'embed', f"❌ Insufficient permissions to remove role {role.name} from {member.name}. {guild}")
           except Exception as e:
                datalog(self, 'embed', f"❌ Error in on_raw_reaction_remove: {e} - {guild}")
-
-
 
 async def setup(bot):
      await bot.add_cog(ReactionRole(bot))

@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import secrets
 import string
-from utils.database_utils import reconnect_database
+from utils.database_utils import reconnect_database, db_get, db_update, db_write
 
 class GenerateTokenCog(commands.Cog):
     def __init__(self, bot):
@@ -19,30 +19,39 @@ class GenerateTokenCog(commands.Cog):
         new_token = self.generate_random_token()
 
         try:
-            with self.conn.cursor() as cursor:
-                cursor.execute("SELECT minecraft_token FROM servers WHERE server_id = %s", (server_id,))
-                result = cursor.fetchone()
-                existing_token = result[0] if result else None
+            # Get existing token
+            result = db_get(
+                self.conn,
+                "SELECT minecraft_token FROM servers WHERE server_id = %s",
+                (server_id,),
+                fetchone=True
+            )
+            existing_token = result[0] if result else None
 
-                if existing_token:
-                    cursor.execute(
-                        "UPDATE servers SET minecraft_token = %s WHERE server_id = %s",
-                        (new_token, server_id)
-                    )
-                    cursor.execute(
-                        "UPDATE users SET token = %s WHERE token = %s",
-                        (new_token, existing_token)
-                    )
-                else:
-                    cursor.execute(
-                        "INSERT INTO servers (server_id, minecraft_token) VALUES (%s, %s)",
-                        (server_id, new_token)
-                    )
-                self.conn.commit()
-            return new_token
+            if existing_token:
+                updated = db_update(
+                    self.conn,
+                    "UPDATE servers SET minecraft_token = %s WHERE server_id = %s",
+                    (new_token, server_id)
+                )
+                updated_users = db_update(
+                    self.conn,
+                    "UPDATE users SET token = %s WHERE token = %s",
+                    (new_token, existing_token)
+                )
+                if updated and updated_users:
+                    return new_token
+            else:
+                inserted = db_write(
+                    self.conn,
+                    "INSERT INTO servers (server_id, minecraft_token) VALUES (%s, %s)",
+                    (server_id, new_token)
+                )
+                if inserted:
+                    return new_token
+            return None
 
         except Exception as e:
-            self.conn.rollback()
             print(f"Database error occurred: {e}")
             return None
 
