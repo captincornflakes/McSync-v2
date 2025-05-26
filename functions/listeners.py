@@ -45,9 +45,12 @@ class Listeners(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_role_update(self, before: discord.Role, after: discord.Role):
+        print(f"[DEBUG] on_guild_role_update fired: {before.name} -> {after.name}")
         reconnect_database(self.conn)
+        guild_id = before.guild.id
+
+        # --- Update channels_roles table as before ---
         if before.name != after.name:
-            guild_id = before.guild.id
             try:
                 result = db_get(
                     self.conn,
@@ -93,6 +96,34 @@ class Listeners(commands.Cog):
                         )
             except Exception as e:
                 datalog(self.conn, 'Listener', f"Failed to update server roles or tier roles in the database: {e}")
+
+            # --- Update partners table if any partner role name changed ---
+            try:
+                result = db_get(
+                    self.conn,
+                    "SELECT partners FROM partners WHERE server_id = %s",
+                    (guild_id,),
+                    fetchone=True
+                )
+                if result and result[0]:
+                    partners_data = json.loads(result[0])
+                    updated = False
+                    for partner, roles in partners_data.items():
+                        for key in ["base", "tier_1", "tier_2", "tier_3"]:
+                            role_info = roles.get(key)
+                            if role_info:
+                                if role_info.get("id") == str(before.id):
+                                    role_info["name"] = after.name
+                                    updated = True
+                    if updated:
+                        db_update(
+                            self.conn,
+                            "UPDATE partners SET partners = %s WHERE server_id = %s",
+                            (json.dumps(partners_data), guild_id)
+                        )
+                        datalog(self.conn, 'Listener', f"Updated partner roles in partners table for guild {guild_id} due to role rename: {before.name} -> {after.name}")
+            except Exception as e:
+                datalog(self.conn, 'Listener', f"Failed to update partner roles in partners table: {e}")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):

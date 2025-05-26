@@ -126,11 +126,17 @@ class PartnersCog(commands.Cog):
             print(f"❌ [Partners] Could not delete Tier 3 selection message: {e}")
 
         # Save to DB
+        def get_role_info(role_id):
+            role = discord.utils.get(guild.roles, id=int(role_id)) if role_id else None
+            if role:
+                return {"id": str(role.id), "name": role.name}
+            return {"id": "", "name": "None"}
+
         partners_data[player.display_name] = {
-            "base": base_role or "",
-            "tier_1": tier_1_role or "",
-            "tier_2": tier_2_role or "",
-            "tier_3": tier_3_role or ""
+            "base": get_role_info(base_role),
+            "tier_1": get_role_info(tier_1_role),
+            "tier_2": get_role_info(tier_2_role),
+            "tier_3": get_role_info(tier_3_role)
         }
         db_update(
             self.conn,
@@ -140,9 +146,8 @@ class PartnersCog(commands.Cog):
         print(f"[Partners] Updated partner {player.display_name} in guild {guild_id}: {partners_data[player.display_name]}")
 
         # Prepare summary of selected roles as an embed
-        def get_role_name(role_id):
-            role = discord.utils.get(guild.roles, id=int(role_id)) if role_id else None
-            return role.name if role else "None"
+        def get_role_name_from_info(role_info):
+            return f"{role_info['name']} (ID: {role_info['id']})" if role_info["id"] else "None"
 
         summary_embed = discord.Embed(
             title=f"✅ Partner Roles Updated for {player.display_name}",
@@ -151,10 +156,10 @@ class PartnersCog(commands.Cog):
         summary_embed.description = (
             f"❕ New users who link their Twitch & Discord accounts may have to wait ~15 minutes before Discord's API updates for the roles to be applied.\n As soon as the user gains their respective role on Discord, they can join the server!"
         )
-        summary_embed.add_field(name="Base Subscriber Role:", value=get_role_name(base_role), inline=False)
-        summary_embed.add_field(name="Tier 1 Role:", value=get_role_name(tier_1_role), inline=False)
-        summary_embed.add_field(name="Tier 2 Role:", value=get_role_name(tier_2_role), inline=False)
-        summary_embed.add_field(name="Tier 3 Role:", value=get_role_name(tier_3_role), inline=False)
+        summary_embed.add_field(name="Base Subscriber Role:", value=get_role_name_from_info(partners_data[player.display_name]["base"]), inline=False)
+        summary_embed.add_field(name="Tier 1 Role:", value=get_role_name_from_info(partners_data[player.display_name]["tier_1"]), inline=False)
+        summary_embed.add_field(name="Tier 2 Role:", value=get_role_name_from_info(partners_data[player.display_name]["tier_2"]), inline=False)
+        summary_embed.add_field(name="Tier 3 Role:", value=get_role_name_from_info(partners_data[player.display_name]["tier_3"]), inline=False)
 
         await interaction.followup.send(
             embed=summary_embed,
