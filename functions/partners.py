@@ -42,9 +42,9 @@ class PartnersCog(commands.Cog):
         managed_roles = [r for r in guild.roles if r.managed and r != guild.default_role]
         if not managed_roles:
             await interaction.response.send_message(
-                "No managed (integration) roles found in this server.", ephemeral=True
+                "❌ No managed (integration) roles found in this server.", ephemeral=True
             )
-            print(f"[Partners] No managed roles found in guild {guild_id}")
+            print(f"❌ [Partners] No managed roles found in guild {guild_id}")
             return
 
         class RoleSelect(discord.ui.Select):
@@ -75,7 +75,7 @@ class PartnersCog(commands.Cog):
         # Prompt for base subscriber role
         base_view = RoleView(managed_roles, "Select base subscriber role...")
         base_msg = await interaction.response.send_message(
-            f"Select a **base subscriber role** for {player.display_name}:", view=base_view, ephemeral=True
+            f"Select the **Base Subscriber Role** for {player.display_name}:", view=base_view, ephemeral=True
         )
         await base_view.wait()
         base_role = base_view.selected_role
@@ -84,12 +84,12 @@ class PartnersCog(commands.Cog):
         try:
             await interaction.delete_original_response()
         except Exception as e:
-            print(f"[Partners] Could not delete base role selection message: {e}")
+            print(f"❌ [Partners] Could not delete base role selection message: {e}")
 
         # Ask for Tier 1
         tier1_view = RoleView(managed_roles, "Select role for Tier 1...")
         tier1_msg = await interaction.followup.send(
-            f"Select a role for **Tier 1** for {player.display_name}:", view=tier1_view, ephemeral=True
+            f"Select the **Tier 1 Role** for {player.display_name}:", view=tier1_view, ephemeral=True
         )
         await tier1_view.wait()
         tier_1_role = tier1_view.selected_role
@@ -97,12 +97,12 @@ class PartnersCog(commands.Cog):
         try:
             await tier1_msg.delete()
         except Exception as e:
-            print(f"[Partners] Could not delete Tier 1 selection message: {e}")
+            print(f"❌ [Partners] Could not delete Tier 1 selection message: {e}")
 
         # Ask for Tier 2
         tier2_view = RoleView(managed_roles, "Select role for Tier 2...")
         tier2_msg = await interaction.followup.send(
-            f"Select a role for **Tier 2** for {player.display_name}:", view=tier2_view, ephemeral=True
+            f"Select the **Tier 2 Role** for {player.display_name}:", view=tier2_view, ephemeral=True
         )
         await tier2_view.wait()
         tier_2_role = tier2_view.selected_role
@@ -110,12 +110,12 @@ class PartnersCog(commands.Cog):
         try:
             await tier2_msg.delete()
         except Exception as e:
-            print(f"[Partners] Could not delete Tier 2 selection message: {e}")
+            print(f"❌ [Partners] Could not delete Tier 2 selection message: {e}")
 
         # Ask for Tier 3
         tier3_view = RoleView(managed_roles, "Select role for Tier 3...")
         tier3_msg = await interaction.followup.send(
-            f"Select a role for **Tier 3** for {player.display_name}:", view=tier3_view, ephemeral=True
+            f"Select the **Tier 3 Role** for {player.display_name}:", view=tier3_view, ephemeral=True
         )
         await tier3_view.wait()
         tier_3_role = tier3_view.selected_role
@@ -123,7 +123,7 @@ class PartnersCog(commands.Cog):
         try:
             await tier3_msg.delete()
         except Exception as e:
-            print(f"[Partners] Could not delete Tier 3 selection message: {e}")
+            print(f"❌ [Partners] Could not delete Tier 3 selection message: {e}")
 
         # Save to DB
         partners_data[player.display_name] = {
@@ -145,13 +145,16 @@ class PartnersCog(commands.Cog):
             return role.name if role else "None"
 
         summary_embed = discord.Embed(
-            title=f"Partner Roles Updated for {player.display_name}",
+            title=f"✅ Partner Roles Updated for {player.display_name}",
             color=discord.Color.green()
         )
-        summary_embed.add_field(name="Base Subscriber Role", value=get_role_name(base_role), inline=False)
-        summary_embed.add_field(name="Tier 1 Role", value=get_role_name(tier_1_role), inline=False)
-        summary_embed.add_field(name="Tier 2 Role", value=get_role_name(tier_2_role), inline=False)
-        summary_embed.add_field(name="Tier 3 Role", value=get_role_name(tier_3_role), inline=False)
+        summary_embed.description = (
+            f"❕ New users who link their Twitch & Discord accounts may have to wait ~15 minutes before Discord's API updates for the roles to be applied.\n As soon as the user gains their respective role on Discord, they can join the server!"
+        )
+        summary_embed.add_field(name="Base Subscriber Role:", value=get_role_name(base_role), inline=False)
+        summary_embed.add_field(name="Tier 1 Role:", value=get_role_name(tier_1_role), inline=False)
+        summary_embed.add_field(name="Tier 2 Role:", value=get_role_name(tier_2_role), inline=False)
+        summary_embed.add_field(name="Tier 3 Role:", value=get_role_name(tier_3_role), inline=False)
 
         await interaction.followup.send(
             embed=summary_embed,
@@ -167,9 +170,9 @@ class PartnersCog(commands.Cog):
 
         if not partners_data:
             await interaction.response.send_message(
-                "No partners found for this server.", ephemeral=True
+                "❌ No partners found for this server.", ephemeral=True
             )
-            print(f"[Partners] No partners to remove in guild {guild_id}")
+            print(f"❌ [Partners] No partners to remove in guild {guild_id}")
             return
 
         class RemovePartnerSelect(discord.ui.Select):
@@ -196,7 +199,7 @@ class PartnersCog(commands.Cog):
                 else:
                     print(f"[Partners] Tried to remove non-existent partner {partner_name} from guild {guild_id}")
                     await select_interaction.response.send_message(
-                        f"Partner {partner_name} not found.", ephemeral=True
+                        f"❌ Partner {partner_name} not found.", ephemeral=True
                     )
                 self.view.stop()
 
