@@ -23,107 +23,142 @@ class PartnersCog(commands.Cog):
                 "INSERT INTO partners (server_id, partners) VALUES (%s, %s)",
                 (guild_id, "{}")
             )
+            print(f"[Partners] Created new partners record for guild {guild_id}")
             return {}
         try:
             return json.loads(result[0]) if result[0] else {}
-        except Exception:
+        except Exception as e:
+            print(f"[Partners] Error loading partners JSON for guild {guild_id}: {e}")
             return {}
 
-    partners_group = app_commands.Group(name="partners", description="Manage Twitch partners and their tier roles.")
-
-    @partners_group.command(name="add", description="Add or update a Twitch partner and their tier roles.")
+    @app_commands.command(name="partners_add", description="Add or update a Twitch partner and their tier roles.")
+    @app_commands.describe(player="The Discord member to set as a Twitch partner")
     @app_commands.default_permissions(administrator=True)
-    async def partners_add(self, interaction: discord.Interaction):
+    async def partners_add(self, interaction: discord.Interaction, player: discord.Member):
         guild = interaction.guild
         guild_id = guild.id
         partners_data = await self.ensure_partner_record(guild_id)
 
-        twitch_managed_members = [
-            m for m in guild.members if any(r.managed and "twitch" in r.name.lower() for r in m.roles)
-        ]
-        if not twitch_managed_members:
+        managed_roles = [r for r in guild.roles if r.managed and r != guild.default_role]
+        if not managed_roles:
             await interaction.response.send_message(
-                "No users with a Twitch integration role found.", ephemeral=True
+                "No managed (integration) roles found in this server.", ephemeral=True
             )
+            print(f"[Partners] No managed roles found in guild {guild_id}")
             return
 
-        class PartnerSelect(discord.ui.Select):
-            def __init__(self, members):
-                options = [
-                    discord.SelectOption(label=m.display_name, value=str(m.id))
-                    for m in members
-                ]
-                super().__init__(placeholder="Select a Twitch partner...", options=options)
-
-            async def callback(self, select_interaction: discord.Interaction):
-                partner_id = int(self.values[0])
-                partner_member = guild.get_member(partner_id)
-                await select_interaction.response.send_message(
-                    f"Selected partner: {partner_member.display_name}. Now select roles for each tier.",
-                    ephemeral=True,
-                    view=TierRoleView(self.view.cog, partner_member, partners_data)
-                )
-
-        class TierRoleSelect(discord.ui.Select):
-            def __init__(self, roles, tier):
+        class RoleSelect(discord.ui.Select):
+            def __init__(self, roles, prompt):
                 options = [
                     discord.SelectOption(label=role.name, value=str(role.id))
                     for role in roles
                 ]
-                super().__init__(placeholder=f"Select role for {tier.replace('_', ' ').title()}...", options=options)
-                self.tier = tier
+                super().__init__(
+                    placeholder=prompt,
+                    options=options,
+                    min_values=1,
+                    max_values=1
+                )
+                self.prompt = prompt
 
             async def callback(self, select_interaction: discord.Interaction):
-                self.view.selected_roles[self.tier] = self.values[0]
-                await select_interaction.response.send_message(
-                    f"Selected role for {self.tier.replace('_', ' ').title()}.",
-                    ephemeral=True
-                )
-
-        class TierRoleView(discord.ui.View):
-            def __init__(self, cog, partner_member, partners_data):
-                super().__init__(timeout=120)
-                self.cog = cog
-                self.partner_member = partner_member
-                self.partners_data = partners_data
-                self.selected_roles = {}
-                managed_roles = [r for r in partner_member.roles if r.managed and r != partner_member.guild.default_role]
-                for tier in ["tier_1", "tier_2", "tier_3"]:
-                    self.add_item(TierRoleSelect(managed_roles, tier))
-                self.add_item(SaveButton(self))
-
-        class SaveButton(discord.ui.Button):
-            def __init__(self, view):
-                super().__init__(label="Save", style=discord.ButtonStyle.green)
-                self.view = view
-
-            async def callback(self, interaction: discord.Interaction):
-                partner_name = self.view.partner_member.display_name
-                self.view.partners_data[partner_name] = {
-                    "tier_1": self.view.selected_roles.get("tier_1", ""),
-                    "tier_2": self.view.selected_roles.get("tier_2", ""),
-                    "tier_3": self.view.selected_roles.get("tier_3", "")
-                }
-                db_update(
-                    self.conn,
-                    "UPDATE partners SET partners = %s WHERE server_id = %s",
-                    (json.dumps(self.view.partners_data), interaction.guild.id)
-                )
-                await interaction.response.send_message(
-                    f"✅ Partner roles updated for {partner_name}.", ephemeral=True
-                )
+                self.view.selected_role = self.values[0]
+                await select_interaction.response.defer()
                 self.view.stop()
 
-        view = discord.ui.View(timeout=60)
-        view.cog = self
-        view.add_item(PartnerSelect(twitch_managed_members))
-        await interaction.response.send_message(
-            "Select a Twitch partner to configure their tier roles:",
-            view=view,
+        class RoleView(discord.ui.View):
+            def __init__(self, roles, prompt):
+                super().__init__(timeout=180)
+                self.selected_role = None
+                self.add_item(RoleSelect(roles, prompt))
+
+        # Prompt for base subscriber role
+        base_view = RoleView(managed_roles, "Select base subscriber role...")
+        base_msg = await interaction.response.send_message(
+            f"Select a **base subscriber role** for {player.display_name}:", view=base_view, ephemeral=True
+        )
+        await base_view.wait()
+        base_role = base_view.selected_role
+
+        # Delete previous ephemeral before next prompt
+        try:
+            await interaction.delete_original_response()
+        except Exception as e:
+            print(f"[Partners] Could not delete base role selection message: {e}")
+
+        # Ask for Tier 1
+        tier1_view = RoleView(managed_roles, "Select role for Tier 1...")
+        tier1_msg = await interaction.followup.send(
+            f"Select a role for **Tier 1** for {player.display_name}:", view=tier1_view, ephemeral=True
+        )
+        await tier1_view.wait()
+        tier_1_role = tier1_view.selected_role
+
+        try:
+            await tier1_msg.delete()
+        except Exception as e:
+            print(f"[Partners] Could not delete Tier 1 selection message: {e}")
+
+        # Ask for Tier 2
+        tier2_view = RoleView(managed_roles, "Select role for Tier 2...")
+        tier2_msg = await interaction.followup.send(
+            f"Select a role for **Tier 2** for {player.display_name}:", view=tier2_view, ephemeral=True
+        )
+        await tier2_view.wait()
+        tier_2_role = tier2_view.selected_role
+
+        try:
+            await tier2_msg.delete()
+        except Exception as e:
+            print(f"[Partners] Could not delete Tier 2 selection message: {e}")
+
+        # Ask for Tier 3
+        tier3_view = RoleView(managed_roles, "Select role for Tier 3...")
+        tier3_msg = await interaction.followup.send(
+            f"Select a role for **Tier 3** for {player.display_name}:", view=tier3_view, ephemeral=True
+        )
+        await tier3_view.wait()
+        tier_3_role = tier3_view.selected_role
+
+        try:
+            await tier3_msg.delete()
+        except Exception as e:
+            print(f"[Partners] Could not delete Tier 3 selection message: {e}")
+
+        # Save to DB
+        partners_data[player.display_name] = {
+            "base": base_role or "",
+            "tier_1": tier_1_role or "",
+            "tier_2": tier_2_role or "",
+            "tier_3": tier_3_role or ""
+        }
+        db_update(
+            self.conn,
+            "UPDATE partners SET partners = %s WHERE server_id = %s",
+            (json.dumps(partners_data), guild_id)
+        )
+        print(f"[Partners] Updated partner {player.display_name} in guild {guild_id}: {partners_data[player.display_name]}")
+
+        # Prepare summary of selected roles as an embed
+        def get_role_name(role_id):
+            role = discord.utils.get(guild.roles, id=int(role_id)) if role_id else None
+            return role.name if role else "None"
+
+        summary_embed = discord.Embed(
+            title=f"Partner Roles Updated for {player.display_name}",
+            color=discord.Color.green()
+        )
+        summary_embed.add_field(name="Base Subscriber Role", value=get_role_name(base_role), inline=False)
+        summary_embed.add_field(name="Tier 1 Role", value=get_role_name(tier_1_role), inline=False)
+        summary_embed.add_field(name="Tier 2 Role", value=get_role_name(tier_2_role), inline=False)
+        summary_embed.add_field(name="Tier 3 Role", value=get_role_name(tier_3_role), inline=False)
+
+        await interaction.followup.send(
+            embed=summary_embed,
             ephemeral=True
         )
 
-    @partners_group.command(name="remove", description="Remove a Twitch partner from the partners list.")
+    @app_commands.command(name="partners_remove", description="Remove a Twitch partner from the partners list.")
     @app_commands.default_permissions(administrator=True)
     async def partners_remove(self, interaction: discord.Interaction):
         guild = interaction.guild
@@ -134,6 +169,7 @@ class PartnersCog(commands.Cog):
             await interaction.response.send_message(
                 "No partners found for this server.", ephemeral=True
             )
+            print(f"[Partners] No partners to remove in guild {guild_id}")
             return
 
         class RemovePartnerSelect(discord.ui.Select):
@@ -149,22 +185,25 @@ class PartnersCog(commands.Cog):
                 if partner_name in partners_data:
                     del partners_data[partner_name]
                     db_update(
-                        self.conn,
+                        self.view.cog.conn,
                         "UPDATE partners SET partners = %s WHERE server_id = %s",
                         (json.dumps(partners_data), guild_id)
                     )
+                    print(f"[Partners] Removed partner {partner_name} from guild {guild_id}")
                     await select_interaction.response.send_message(
                         f"✅ Removed partner: {partner_name}", ephemeral=True
                     )
                 else:
+                    print(f"[Partners] Tried to remove non-existent partner {partner_name} from guild {guild_id}")
                     await select_interaction.response.send_message(
                         f"Partner {partner_name} not found.", ephemeral=True
                     )
                 self.view.stop()
 
-        view = discord.ui.View(timeout=60)
+        view = discord.ui.View(timeout=180)
         view.cog = self
         view.add_item(RemovePartnerSelect(list(partners_data.keys())))
+        print(f"[Partners] Prompting for partner removal in guild {guild_id}")
         await interaction.response.send_message(
             "Select a partner to remove:",
             view=view,
