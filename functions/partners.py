@@ -39,13 +39,17 @@ class PartnersCog(commands.Cog):
         guild_id = guild.id
         partners_data = await self.ensure_partner_record(guild_id)
 
-        managed_roles = [r for r in guild.roles if r.managed and r != guild.default_role]
-        print(f"[Partners] Number of managed roles in guild {guild_id}: {len(managed_roles)}")  # Debug output
+        # Only include managed roles that are NOT managed by bots (integration type is not 'bot')
+        managed_roles = [
+            r for r in guild.roles
+            if r.managed and r != guild.default_role and (not hasattr(r, "tags") or not (r.tags and r.tags.bot_id))
+        ]
+        print(f"[Partners] Number of managed roles (not bot-managed) in guild {guild_id}: {len(managed_roles)}")  # Debug output
         if not managed_roles:
             await interaction.response.send_message(
-                "❌ No managed (integration) roles found in this server.", ephemeral=True
+                "❌ No managed (integration) roles found in this server (excluding bot-managed roles).", ephemeral=True
             )
-            print(f"❌ [Partners] No managed roles found in guild {guild_id}")
+            print(f"❌ [Partners] No managed roles (not bot-managed) found in guild {guild_id}")
             return
 
         class RoleSelect(discord.ui.Select):
@@ -139,6 +143,8 @@ class PartnersCog(commands.Cog):
             "tier_2": get_role_info(tier_2_role),
             "tier_3": get_role_info(tier_3_role)
         }
+        print(f"[Partners] Adding/updating partner '{player.display_name}' with data: {json.dumps(partners_data[player.display_name], indent=2)}")  # Debug output
+        print(f"[Partners] Full partners_data for guild {guild_id}: {json.dumps(partners_data, indent=2)}")  # Debug output
 
         db_update(
             self.conn,
