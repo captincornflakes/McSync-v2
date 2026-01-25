@@ -78,15 +78,12 @@ def db_delete(conn, query, params=None):
         return False
 
 def get_active_connection_count(conn):
-    """Returns the number of active connections for the current user/database."""
     try:
         with conn.cursor() as cursor:
             cursor.execute("SHOW PROCESSLIST")
             processes = cursor.fetchall()
-            # Get current user and database
             cursor.execute("SELECT USER(), DATABASE()")
             current_user, current_db = cursor.fetchone()
-            # Count only connections from this user and database
             count = sum(
                 1 for p in processes
                 if (p[1] == current_user.split('@')[0]) and (not current_db or p[3] == current_db)

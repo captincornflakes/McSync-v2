@@ -166,3 +166,4 @@ Info.txt
 Website/
 plugin/
 datastores/config-dev.json
+/.vscode
