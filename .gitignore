@@ -167,3 +167,4 @@ Website/
 plugin/
 datastores/config-dev.json
 /.vscode
+datastores/config-prod.json

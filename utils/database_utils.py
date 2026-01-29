@@ -1,4 +1,5 @@
 import mysql.connector
+import re
 
 def setup_database_connection(config):
     if not config.get('use_DB', False):
@@ -31,11 +32,30 @@ def reconnect_database(conn):
     except Exception as e:
         print(f"Error reconnecting to the database: {e}")
 
+def _apply_upsert(query):
+    if not query or not isinstance(query, str):
+        return query
+    if not query.lstrip().lower().startswith("insert"):
+        return query
+    if "on duplicate key update" in query.lower():
+        return query
+    match = re.search(r"insert\s+into\s+[^\(]+\((.*?)\)\s*values", query, re.IGNORECASE | re.DOTALL)
+    if not match:
+        return query
+    columns_raw = match.group(1)
+    columns = [col.strip().strip("`") for col in columns_raw.split(",") if col.strip()]
+    if not columns:
+        return query
+    assignments = ", ".join([f"`{col}` = VALUES(`{col}`)" for col in columns])
+    return f"{query} ON DUPLICATE KEY UPDATE {assignments}"
+
+
 def db_write(conn, query, params=None):
     """Insert or update data in the database."""
     try:
+        upsert_query = _apply_upsert(query)
         with conn.cursor() as cursor:
-            cursor.execute(query, params or ())
+            cursor.execute(upsert_query, params or ())
             conn.commit()
         return True
     except Exception as e:
