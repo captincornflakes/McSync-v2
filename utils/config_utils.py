@@ -1,47 +1,35 @@
-import json
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def load_config():
-    dev_config_file = "datastores/config-dev.json"
-    prod_config_file = "datastores/config-prod.json"
-    config = None
-    try:
-        with open(dev_config_file, 'r') as f:
-            config = json.load(f)
-            print(f"Loading configuration from {dev_config_file}.")
-    except FileNotFoundError:
-        print(f"{dev_config_file} not found. Trying {prod_config_file}...")
-        try:
-            with open(prod_config_file, 'r') as f:
-                config = json.load(f)
-                print(f"Loading configuration from {prod_config_file}.")
-        except FileNotFoundError:
-            print(f"Error: Neither {dev_config_file} nor {prod_config_file} could be found.")
-            print("Generating default config at datastores/config-prod.json ...")
-            generate_default_config("datastores/config-prod.json")
-            with open(dev_config_file, 'r') as f:
-                config = json.load(f)
-    return config
-
-def generate_default_config(path="datastores/config-prod.json"):
-    """Generate a default config file at the given path."""
-    default_config = {
-        "token": "",
-        "application_id": 0,
-        "status": "loading",
-        "use_Git": False,
-        "repo_url": "https://github.com/captincornflakes/McSync-v2",
-        "repo_temp": "Disocrd-Bot-Template-main",
-        "repo_Token": "",
-        "use_DB": True,
-        "database": {
-            "host": "",
-            "user": "",
-            "password": "",
-            "database": ""
+    """Load configuration entirely from environment variables."""
+    config = {
+        'token': os.getenv('DISCORD_TOKEN', ''),
+        'application_id': int(os.getenv('APPLICATION_ID', '0') or '0'),
+        'status': os.getenv('BOT_STATUS', 'loading'),
+        'use_Git': os.getenv('USE_GIT', 'false').lower() in ('true', '1', 'yes'),
+        'repo_url': os.getenv('REPO_URL', 'https://github.com/captincornflakes/McSync-v2'),
+        'repo_temp': os.getenv('REPO_TEMP', 'Discord-Bot-Template-main'),
+        'repo_Token': os.getenv('REPO_TOKEN', ''),
+        'use_DB': os.getenv('USE_DB', 'true').lower() in ('true', '1', 'yes'),
+        'database': {
+            'host': os.getenv('DB_HOST', ''),
+            'user': os.getenv('DB_USER', ''),
+            'password': os.getenv('DB_PASSWORD', ''),
+            'database': os.getenv('DB_NAME', '')
         }
     }
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(default_config, f, indent=4)
-    print(f"Default config generated at {path}")
+    
+    # Validate required settings
+    if not config['token']:
+        print("Warning: DISCORD_TOKEN not set in environment variables.")
+    if not config['application_id']:
+        print("Warning: APPLICATION_ID not set in environment variables.")
+    if config['use_DB'] and not all(config['database'].values()):
+        print("Warning: Database is enabled but missing configuration (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME).")
+    
+    print("Configuration loaded from environment variables.")
+    return config
