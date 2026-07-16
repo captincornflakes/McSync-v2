@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 # Intents
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = False
 intents.members = True
 intents.guilds = True
 
