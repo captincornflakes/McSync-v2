@@ -17,6 +17,7 @@ def setup_database_connection(config):
             user=db_config.get('user', ''),
             password=db_config.get('password', ''),
             database=db_config.get('database', ''),
+            port=db_config.get('port', 3306),
             autocommit=True,
             connection_timeout=6000
         )
