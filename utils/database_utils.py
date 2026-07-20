@@ -22,6 +22,7 @@ def setup_database_connection(config):
             connection_timeout=6000
         )
         print("Database connection established successfully.")
+        print(f"Connected to {db_config.get('host', '')}:{db_config.get('port', 3306)} as {db_config.get('user', '')}")
         return db_connection
     except mysql.connector.Error as err:
         print(f"Error connecting to the database: {err}")
